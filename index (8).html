@@ -1,0 +1,1762 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Brainrot Go 🧠</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<script src="brainrot-icons.js" onerror="window.BRAINROT_SVGS={}"></script>
+<style>
+:root{
+  --bg:#0d0d0d;--card:rgba(0,0,0,0.75);--border:rgba(76,255,80,0.15);
+  --accent:#4cff50;--red:#ff3333;--dark:#111;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Nunito',sans-serif;background:#0d0d0d;color:#fff;height:100dvh;overflow:hidden;display:flex;flex-direction:column}
+
+/* ═══ LOGIN ═══ */
+#login-screen{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;overflow-y:auto;padding:20px 16px 40px;background:linear-gradient(180deg,#0d0d0d 0%,#0a1a0a 50%,#1a0000 100%)}
+#login-logo{font-family:'Bangers',cursive;font-size:52px;letter-spacing:4px;color:#4cff50;text-shadow:0 0 20px #4cff50,3px 3px 0 #ff3333;margin:30px 0 4px;text-align:center}
+#login-sub{font-size:13px;color:rgba(255,255,255,0.6);margin-bottom:24px}
+#login-avatar-section{background:rgba(0,0,0,0.6);border:1px solid rgba(76,255,80,0.2);border-radius:20px;padding:16px;width:100%;max-width:340px;margin-bottom:12px}
+#login-avatar-section h3{font-size:13px;color:#4cff50;margin-bottom:10px;text-align:center;font-weight:900}
+#avatar-preview{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#1a3a1a,#0d0d0d);margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:40px;border:3px solid #4cff50;box-shadow:0 0 20px rgba(76,255,80,0.3)}
+.av-row{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:8px}
+.av-label{font-size:10px;color:#4cff50;width:100%;text-align:center;margin-bottom:2px}
+.av-opt{width:36px;height:36px;border-radius:8px;border:2px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.4);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:all 0.15s}
+.av-opt.sel{border-color:#4cff50;background:rgba(76,255,80,0.15);transform:scale(1.1)}
+.av-color{width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,0.1);cursor:pointer;transition:all 0.15s}
+.av-color.sel{border-color:#fff;transform:scale(1.2)}
+#login-form{background:rgba(0,0,0,0.6);border:1px solid rgba(76,255,80,0.2);border-radius:20px;padding:16px;width:100%;max-width:340px}
+.login-input{width:100%;padding:12px 16px;border-radius:12px;border:2px solid rgba(76,255,80,0.2);background:rgba(0,0,0,0.5);color:#fff;font-size:15px;font-family:'Nunito',sans-serif;font-weight:700;margin-bottom:10px;outline:none}
+.login-input:focus{border-color:#4cff50}
+.login-btn{width:100%;padding:14px;border-radius:30px;border:none;font-family:'Bangers',cursive;font-size:24px;letter-spacing:2px;cursor:pointer;background:linear-gradient(135deg,#4cff50,#1a8c1a);color:#000;box-shadow:0 0 20px rgba(76,255,80,0.4);font-weight:900}
+#login-err{color:#ff3333;font-size:12px;text-align:center;margin-bottom:6px;min-height:16px}
+
+/* ═══ MAP — CRITICAL FIX ═══ */
+/* Map is ALWAYS rendered, just hidden behind login */
+#map{
+  position:fixed;inset:0;z-index:1;
+  /* Starts hidden but with correct dimensions */
+  visibility:hidden;
+  padding-bottom:60px;
+}
+#map.active{visibility:visible;}
+.leaflet-container{background:#1a1a2e !important}
+.leaflet-tile-pane{filter:saturate(1.2) brightness(0.9) hue-rotate(5deg)}
+
+/* ═══ HEADER ═══ */
+#bottom-bar{position:fixed;bottom:0;left:0;right:0;z-index:1000;display:none;flex-direction:column}
+#nav-bar{background:linear-gradient(180deg,rgba(0,10,0,0.97),rgba(0,5,0,0.99));border-top:2px solid rgba(76,255,80,0.3);display:flex;align-items:center;padding:4px 4px 8px;gap:2px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+#nav-bar::-webkit-scrollbar{display:none}
+.nav-btn{flex:1;padding:6px 0 4px;background:none;border:none;color:rgba(255,255,255,0.6);font-size:22px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;font-family:'Nunito',sans-serif;transition:color 0.2s}
+.nav-btn span{font-size:8px}
+.nav-btn.active{color:#76ff03}
+#catch-btn-wrap{position:relative;flex-shrink:0}
+#main-catch-btn{width:64px;height:64px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff 0%,#e0e0e0 40%,#9e9e9e 100%);border:4px solid #333;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 3px #555,0 4px 12px rgba(0,0,0,0.5);position:relative;overflow:hidden;margin-top:-20px}
+#main-catch-btn:before{content:"";position:absolute;top:50%;left:0;right:0;height:3px;background:#333;transform:translateY(-50%)}
+#main-catch-btn:after{content:"";position:absolute;width:16px;height:16px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#fff,#bbb);border:2px solid #333;top:50%;left:50%;transform:translate(-50%,-50%)}
+
+/* ═══ TOP HUD ═══ */
+#top-hud{position:fixed;top:0;left:0;right:0;z-index:1000;display:none;padding:8px 12px;pointer-events:none}
+#player-card{background:rgba(0,0,0,0.55);backdrop-filter:blur(4px);border-radius:40px;padding:6px 12px 6px 6px;display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,0.15);pointer-events:all;max-width:200px}
+#player-avatar-hud{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;border:2px solid rgba(255,255,255,0.3);flex-shrink:0}
+#player-info{flex:1;min-width:0}
+#player-name-hud{font-size:11px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#player-lvl{font-size:9px;color:rgba(255,255,255,0.7)}
+#xp-mini{height:3px;background:rgba(255,255,255,0.2);border-radius:2px;margin-top:2px;overflow:hidden}
+#xp-mini-fill{height:100%;background:#76ff03;transition:width 0.5s}
+#top-right{position:absolute;top:8px;right:12px;display:flex;flex-direction:column;align-items:flex-end;gap:4px;pointer-events:all}
+#coins-hud{background:rgba(0,0,0,0.55);backdrop-filter:blur(4px);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:900;color:#FBBF24;border:1px solid rgba(251,191,36,0.3)}
+#active-bonus{background:rgba(0,0,0,0.55);border-radius:20px;padding:3px 8px;font-size:10px;display:none;border:1px solid rgba(76,255,3,0.3);color:#76ff03}
+
+/* ═══ NEARBY PANEL — bottom right ═══ */
+#nearby-panel{position:fixed;right:8px;bottom:90px;z-index:999;display:none;flex-direction:column;gap:4px;pointer-events:none}
+.nearby-item{background:rgba(0,0,0,0.7);border-radius:10px;padding:4px 8px 4px 4px;display:flex;align-items:center;gap:6px;font-size:11px;border:1px solid rgba(255,255,255,0.1);animation:nearby-pop 0.3s}
+@keyframes nearby-pop{from{transform:scale(0.8);opacity:0}to{transform:scale(1);opacity:1}}
+.nearby-dot{width:6px;height:6px;border-radius:50%;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+
+/* ═══ PANELS ═══ */
+.panel{position:fixed;inset:0;background:linear-gradient(180deg,#0d0d0d 0%,#0a1a0a 100%);z-index:2000;display:none;flex-direction:column}
+.panel.open{display:flex}
+.panel-hd{padding:10px 14px;display:flex;align-items:center;gap:10px;background:rgba(0,20,0,0.8);flex-shrink:0;border-bottom:1px solid rgba(76,255,80,0.2)}
+.panel-hd h2{font-family:'Bangers',cursive;font-size:20px;letter-spacing:1px;color:#4cff50;text-shadow:0 0 10px rgba(76,255,80,0.5)}
+.close-btn{margin-left:auto;background:rgba(255,51,51,0.15);border:1px solid rgba(255,51,51,0.4);color:#ff3333;font-size:18px;cursor:pointer;padding:4px 10px;border-radius:20px}
+.panel-body{flex:1;overflow-y:auto;padding:12px}
+.filters{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px}
+.filt{padding:4px 10px;border-radius:20px;border:1px solid rgba(76,255,80,0.2);background:rgba(0,0,0,0.4);color:rgba(255,255,255,0.5);font-size:10px;cursor:pointer;font-family:'Nunito',sans-serif;font-weight:700}
+.filt.on{background:rgba(76,255,80,0.2);color:#4cff50;border-color:#4cff50}
+
+/* ═══ DEX ═══ */
+#dex-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.dex-card{background:rgba(0,0,0,0.4);border-radius:10px;padding:6px 4px;text-align:center;border:1px solid rgba(255,255,255,0.1);position:relative;cursor:pointer;transition:transform 0.15s}
+.dex-card:active{transform:scale(0.93)}
+.dex-card.locked{opacity:0.25;filter:grayscale(1)}
+.dex-cnt{position:absolute;top:2px;right:4px;font-size:8px;color:#76ff03;font-weight:900}
+.dex-mut{position:absolute;top:2px;left:3px;font-size:8px}
+.dex-name{font-size:7px;font-weight:700;line-height:1.2;margin-top:2px;color:#fff}
+.dex-rar{font-size:6px;margin-top:1px}
+#dex-stats{font-size:11px;color:rgba(255,255,255,0.6);margin-bottom:8px}
+
+/* ═══ COLLECTION ═══ */
+#col-list{display:flex;flex-direction:column;gap:8px}
+.col-item{background:rgba(0,0,0,0.4);border-radius:12px;padding:10px;display:flex;align-items:center;gap:10px;border:1px solid rgba(255,255,255,0.1)}
+.col-e{font-size:32px;flex-shrink:0}
+.col-info{flex:1;min-width:0}
+.col-name{font-weight:900;font-size:12px}
+.col-desc{font-size:10px;color:rgba(255,255,255,0.6);margin-top:1px}
+.col-mut{font-size:10px;margin-top:2px;color:#76ff03}
+.col-cnt{font-size:12px;color:rgba(255,255,255,0.6);font-weight:700;flex-shrink:0}
+.rbadge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:9px;font-weight:700;margin-top:3px}
+
+/* ═══ SHOP ═══ */
+#shop-coins-bar{background:rgba(0,0,0,0.4);border-radius:10px;padding:10px 14px;margin-bottom:10px;font-size:14px;font-weight:900;color:#FBBF24;border:1px solid rgba(251,191,36,0.2)}
+#shop-tabs{display:flex;gap:6px;margin-bottom:10px}
+.shop-tab{padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,0.2);background:rgba(0,0,0,0.2);color:rgba(255,255,255,0.7);font-size:11px;cursor:pointer;font-family:'Nunito',sans-serif;font-weight:700}
+.shop-tab.on{background:rgba(76,175,80,0.6);color:#fff;border-color:#4CAF50}
+#lucky-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.lucky-card{background:rgba(0,0,0,0.4);border-radius:14px;padding:14px 10px;border:2px solid;text-align:center}
+.lucky-icon{font-size:44px;margin-bottom:6px}
+.lucky-name{font-family:'Bangers',cursive;font-size:17px;letter-spacing:1px;margin-bottom:4px}
+.lucky-desc{font-size:9px;color:rgba(255,255,255,0.6);margin-bottom:8px;line-height:1.4}
+.lucky-price{font-size:12px;font-weight:900;color:#FBBF24;margin-bottom:8px}
+.lucky-btn{width:100%;padding:9px;border-radius:10px;border:none;font-family:'Bangers',cursive;font-size:15px;cursor:pointer;color:#fff}
+#gp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.gp-card{background:rgba(0,0,0,0.4);border-radius:12px;padding:10px;border:1px solid rgba(255,255,255,0.1);text-align:center}
+.gp-card.owned{border-color:#4CAF50;background:rgba(76,175,80,0.1)}
+.gp-icon{font-size:28px;margin-bottom:4px}
+.gp-name{font-family:'Bangers',cursive;font-size:13px;letter-spacing:1px;margin-bottom:3px}
+.gp-desc{font-size:9px;color:rgba(255,255,255,0.6);margin-bottom:6px;line-height:1.3}
+.gp-price{font-size:11px;font-weight:900;color:#FBBF24;margin-bottom:5px}
+.gp-btn{padding:6px;border-radius:8px;border:none;font-family:'Bangers',cursive;font-size:12px;cursor:pointer;background:linear-gradient(135deg,#4CAF50,#2E7D32);color:#fff;width:100%}
+.gp-btn:disabled{background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.3);cursor:default}
+
+/* ═══ LUCKY MODAL ═══ */
+#lucky-modal{position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:6000;display:none;align-items:center;justify-content:center}
+#lucky-modal.open{display:flex}
+#lucky-box{background:linear-gradient(135deg,#1B5E20,#2E7D32);border-radius:24px;padding:28px 20px;text-align:center;max-width:280px;width:90%;border:2px solid rgba(76,175,80,0.5)}
+#lucky-spin-icon{font-size:72px;animation:spin-anim 0.4s infinite alternate}
+@keyframes spin-anim{from{transform:scale(0.9) rotate(-8deg)}to{transform:scale(1.1) rotate(8deg)}}
+#lucky-result{display:none}
+#lucky-result-icon{font-size:80px;animation:pop-in 0.5s cubic-bezier(0.175,0.885,0.32,1.275)}
+@keyframes pop-in{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+#lucky-result-name{font-family:'Bangers',cursive;font-size:24px;letter-spacing:1px;margin-top:8px}
+#lucky-result-rar{margin:5px 0 14px}
+.lucky-close-btn{width:100%;padding:12px;border-radius:10px;border:none;font-family:'Bangers',cursive;font-size:17px;cursor:pointer;background:linear-gradient(135deg,#4CAF50,#2E7D32);color:#fff}
+
+/* ═══ CATCH SCREEN — style Pokémon Go ═══ */
+#catch-screen{position:fixed;inset:0;z-index:3000;display:none;flex-direction:column}
+#catch-screen.open{display:flex}
+/* Background nature scene */
+#catch-bg{position:absolute;inset:0;background:linear-gradient(180deg,#87CEEB 0%,#87CEEB 50%,#4CAF50 50%,#388E3C 100%)}
+#catch-grass{position:absolute;bottom:0;left:0;right:0;height:55%;background:radial-gradient(ellipse at 50% 100%,#2E7D32,#1B5E20);border-radius:60% 60% 0 0 / 20% 20% 0 0}
+/* Brainrot display */
+#catch-creature-wrap{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);text-align:center;z-index:2}
+#catch-creature-img{font-size:90px;animation:creature-bounce 1.5s infinite ease-in-out;display:inline-block;filter:drop-shadow(0 8px 16px rgba(0,0,0,0.4))}
+@keyframes creature-bounce{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-16px) scale(1.05)}}
+#catch-shadow{width:60px;height:12px;background:rgba(0,0,0,0.3);border-radius:50%;margin:4px auto 0;animation:shadow-pulse 1.5s infinite ease-in-out}
+@keyframes shadow-pulse{0%,100%{transform:scale(1);opacity:0.4}50%{transform:scale(0.7);opacity:0.2}}
+/* Info bar */
+#catch-info-bar{position:absolute;top:0;left:0;right:0;padding:12px 16px 8px;background:linear-gradient(180deg,rgba(0,0,0,0.5),transparent);z-index:3}
+#catch-name-top{font-family:'Bangers',cursive;font-size:26px;letter-spacing:2px;text-shadow:2px 2px 4px rgba(0,0,0,0.8)}
+#catch-rar-top{font-size:11px;margin-top:2px}
+#catch-mut-top{font-size:10px;color:#76ff03;margin-top:2px;min-height:14px}
+/* HP bar */
+#catch-hp-section{position:absolute;top:56px;right:16px;z-index:3;text-align:right}
+#catch-hp-label{font-size:9px;color:rgba(255,255,255,0.7);margin-bottom:2px}
+#catch-hp-bar-wrap{width:100px;height:6px;background:rgba(0,0,0,0.4);border-radius:3px;overflow:hidden}
+#catch-hp-bar{height:100%;border-radius:3px;transition:width 0.25s}
+/* Brainrot ball (like pokeball) */
+#catch-bottom{position:absolute;bottom:0;left:0;right:0;padding:16px;z-index:3;display:flex;flex-direction:column;align-items:center}
+#brainrot-ball{width:72px;height:72px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#FF6B35,#E53935);border:4px solid #212121;cursor:pointer;position:relative;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.5);transition:transform 0.1s;margin-bottom:12px}
+#brainrot-ball:active{transform:scale(0.9)}
+#brainrot-ball:before{content:"";position:absolute;top:50%;left:0;right:0;height:4px;background:#212121;transform:translateY(-50%)}
+#brainrot-ball:after{content:"";position:absolute;width:16px;height:16px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#ccc);border:2px solid #212121;top:50%;left:50%;transform:translate(-50%,-50%)}
+#ball-hint{font-size:11px;color:rgba(255,255,255,0.8);text-shadow:1px 1px 2px rgba(0,0,0,0.5);margin-bottom:8px}
+/* Minigames overlay */
+#mg-overlay{position:absolute;inset:0;z-index:4;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.3)}
+#mg-overlay.show{display:flex}
+#mg-box{background:rgba(0,0,0,0.85);border-radius:20px;padding:20px;text-align:center;max-width:280px;width:88%;border:1px solid rgba(255,255,255,0.2)}
+/* Dodge */
+#mg-dodge-creature{font-size:70px;cursor:pointer;display:inline-block;animation:dodge-shake 0.3s infinite}
+@keyframes dodge-shake{0%,100%{transform:translateX(0)}33%{transform:translateX(-8px) rotate(-5deg)}66%{transform:translateX(8px) rotate(5deg)}}
+#mg-countdown{font-family:'Bangers',cursive;font-size:48px;color:#FBBF24}
+/* Timing */
+#mg-timing-track{position:relative;height:44px;background:rgba(255,255,255,0.1);border-radius:22px;overflow:hidden;margin:8px 0;cursor:pointer}
+#mg-timing-zone{position:absolute;top:0;bottom:0;width:25%;background:rgba(74,222,128,0.5);border-radius:4px}
+#mg-timing-cursor{position:absolute;top:4px;bottom:4px;width:10px;background:#fff;border-radius:5px;box-shadow:0 0 8px rgba(255,255,255,0.8)}
+/* Throw ball game */
+#throw-area{position:absolute;inset:0;z-index:5;display:none;touch-action:none}
+#throw-area.show{display:block}
+#throw-ring{position:absolute;border-radius:50%;border:3px solid;animation:ring-shrink 1.5s infinite;pointer-events:none}
+@keyframes ring-shrink{0%{width:100px;height:100px;margin-left:-50px;margin-top:-50px;opacity:0.8}100%{width:40px;height:40px;margin-left:-20px;margin-top:-20px;opacity:0.3}}
+#throw-ball-visual{position:absolute;width:40px;height:40px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#FF6B35,#E53935);border:2px solid #212121;display:none;pointer-events:none}
+/* Escape msg */
+#catch-escape{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Bangers',cursive;font-size:32px;color:#F87171;text-shadow:2px 2px 4px rgba(0,0,0,0.8);z-index:6;display:none;animation:flash-text 0.5s 3}
+@keyframes flash-text{0%,100%{opacity:1}50%{opacity:0}}
+/* Catch buttons */
+#catch-run-btn{background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.3);color:#fff;padding:8px 20px;border-radius:20px;font-family:'Bangers',cursive;font-size:14px;cursor:pointer}
+#catch-ar-btn{background:rgba(0,150,255,0.5);border:1px solid rgba(0,150,255,0.5);color:#fff;padding:8px 20px;border-radius:20px;font-family:'Bangers',cursive;font-size:14px;cursor:pointer;margin-right:8px}
+#catch-already{background:rgba(251,191,36,0.2);border:1px solid rgba(251,191,36,0.3);border-radius:10px;padding:6px 10px;font-size:10px;color:#FBBF24;margin-bottom:8px;display:none}
+
+/* ═══ AR — EXACT POSITION ═══ */
+#ar-modal{position:fixed;inset:0;z-index:5000;display:none;flex-direction:column;background:#000}
+#ar-modal.open{display:flex}
+#ar-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#ar-ui{position:absolute;inset:0;pointer-events:none}
+#ar-top-bar{padding:12px 16px;display:flex;align-items:center;gap:10px;background:linear-gradient(180deg,rgba(0,0,0,0.7),transparent);pointer-events:all}
+#ar-creature-name{font-family:'Bangers',cursive;font-size:22px;letter-spacing:2px;flex:1;color:#4cff50;text-shadow:0 0 10px #4cff50}
+#ar-rar-badge{font-size:10px;padding:3px 8px;border-radius:12px}
+#ar-close-btn{background:rgba(255,51,51,0.3);border:1px solid rgba(255,51,51,0.5);color:#ff3333;padding:6px 12px;border-radius:20px;cursor:pointer;font-size:14px;pointer-events:all}
+/* Creature positioned absolutely based on GPS bearing */
+#ar-creature-ar{
+  position:absolute;
+  transform:translate(-50%,-50%);
+  font-size:100px;
+  filter:drop-shadow(0 0 30px rgba(76,255,80,0.9));
+  pointer-events:none;
+  transition:left 0.3s,top 0.3s;
+  z-index:2;
+  animation:ar-float 2s infinite ease-in-out;
+}
+@keyframes ar-float{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-60%) scale(1.08)}}
+#ar-dist{position:absolute;top:56px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.65);padding:4px 14px;border-radius:20px;font-size:11px;color:#4cff50;border:1px solid rgba(76,255,80,0.3);white-space:nowrap;z-index:3}
+/* Compass when too far */
+#ar-compass-wrap{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:3;pointer-events:none}
+#ar-compass-wrap.show{display:flex}
+#ar-compass-arrow{font-size:80px;filter:drop-shadow(0 0 20px #FBBF24);transition:transform 0.5s}
+#ar-compass-meters{font-family:'Bangers',cursive;font-size:32px;color:#FBBF24;text-shadow:0 0 12px #FBBF24;margin-top:8px}
+#ar-compass-txt{font-size:13px;color:rgba(255,255,255,0.8);margin-top:4px}
+/* Ball at bottom */
+#ar-ball{position:absolute;bottom:36px;left:50%;transform:translateX(-50%);width:72px;height:72px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#FF6B35,#E53935);border:4px solid #212121;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,0.6);z-index:3;pointer-events:all}
+#ar-ball:before{content:"";position:absolute;top:50%;left:0;right:0;height:4px;background:#212121;transform:translateY(-50%)}
+#ar-ball:after{content:"";position:absolute;width:16px;height:16px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#ccc);border:2px solid #212121;top:50%;left:50%;transform:translate(-50%,-50%)}
+#ar-no-cam{position:absolute;inset:0;background:#0d0d0d;display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px;font-size:14px;color:#888;z-index:3}
+
+/* ═══ TOAST ═══ */
+#toast{position:fixed;top:70px;left:50%;transform:translateX(-50%) translateY(-10px);background:rgba(0,0,0,0.85);border:1px solid rgba(76,175,80,0.5);color:#fff;padding:8px 18px;border-radius:28px;font-size:12px;font-weight:700;z-index:4000;opacity:0;transition:all 0.3s;pointer-events:none;max-width:86vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ═══ AR FLOAT BTN ═══ */
+#ar-float{position:fixed;right:12px;bottom:85px;width:46px;height:46px;border-radius:50%;background:rgba(0,100,200,0.7);border:2px solid rgba(100,180,255,0.5);color:#fff;font-size:20px;cursor:pointer;z-index:998;display:none;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.4)}
+
+/* ═══ BIOME ═══ */
+#biome-badge{position:fixed;bottom:82px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.65);border:1px solid rgba(255,255,255,0.1);padding:4px 12px;border-radius:20px;font-size:10px;font-weight:700;z-index:997;opacity:0;transition:opacity 0.4s;pointer-events:none}
+#biome-badge.show{opacity:1}
+
+/* ═══ MARKERS ═══ */
+.b-marker{width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid;cursor:pointer;box-shadow:0 0 16px currentColor,0 3px 8px rgba(0,0,0,0.5);animation:m-pulse 2.5s infinite;background:rgba(255,255,255,0.15);backdrop-filter:blur(2px);font-size:26px}
+.b-marker.near{animation:m-pulse-fast 0.6s infinite}
+@keyframes m-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+@keyframes m-pulse-fast{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+
+/* ═══ ARENA MARKER ═══ */
+.arena-marker{width:54px;height:54px;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);border:3px solid #FBBF24;cursor:pointer;animation:arena-glow 2s infinite;box-shadow:0 0 20px rgba(251,191,36,0.5);font-size:8px;font-weight:900;color:#FBBF24}
+.arena-marker .arena-icon{font-size:28px;line-height:1}
+@keyframes arena-glow{0%,100%{box-shadow:0 0 20px rgba(251,191,36,0.5)}50%{box-shadow:0 0 35px rgba(251,191,36,0.9)}}
+
+.empty{text-align:center;padding:40px 20px;color:rgba(255,255,255,0.4);font-size:13px;line-height:1.8}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div id="login-bg"></div>
+  <div id="login-clouds">
+    <div class="cloud" style="width:120px;height:30px;top:20px;animation-duration:25s;animation-delay:0s"></div>
+    <div class="cloud" style="width:80px;height:20px;top:50px;animation-duration:18s;animation-delay:-8s"></div>
+    <div class="cloud" style="width:150px;height:35px;top:30px;animation-duration:30s;animation-delay:-15s"></div>
+  </div>
+  <div id="login-logo">🧠 BRAINROT GO</div>
+  <div id="login-sub">Attrape les brainrots dans le monde réel !</div>
+
+  <!-- Avatar builder -->
+  <div id="login-avatar-section">
+    <h3>🎨 Crée ton avatar</h3>
+    <div id="avatar-preview">🧠</div>
+    <div class="av-label">Visage</div>
+    <div class="av-row" id="av-face">
+      <div class="av-opt sel" data-type="face" data-val="🧠" onclick="setAv('face',this)">🧠</div>
+      <div class="av-opt" data-type="face" data-val="😎" onclick="setAv('face',this)">😎</div>
+      <div class="av-opt" data-type="face" data-val="🤪" onclick="setAv('face',this)">🤪</div>
+      <div class="av-opt" data-type="face" data-val="😈" onclick="setAv('face',this)">😈</div>
+      <div class="av-opt" data-type="face" data-val="🥸" onclick="setAv('face',this)">🥸</div>
+      <div class="av-opt" data-type="face" data-val="🤩" onclick="setAv('face',this)">🤩</div>
+    </div>
+    <div class="av-label">Chapeau</div>
+    <div class="av-row" id="av-hat">
+      <div class="av-opt sel" data-type="hat" data-val="" onclick="setAv('hat',this)">∅</div>
+      <div class="av-opt" data-type="hat" data-val="🎩" onclick="setAv('hat',this)">🎩</div>
+      <div class="av-opt" data-type="hat" data-val="👑" onclick="setAv('hat',this)">👑</div>
+      <div class="av-opt" data-type="hat" data-val="⛑️" onclick="setAv('hat',this)">⛑️</div>
+      <div class="av-opt" data-type="hat" data-val="🎓" onclick="setAv('hat',this)">🎓</div>
+      <div class="av-opt" data-type="hat" data-val="🤠" onclick="setAv('hat',this)">🤠</div>
+    </div>
+    <div class="av-label">Couleur fond</div>
+    <div class="av-row" id="av-colors">
+      <div class="av-color sel" data-color="#4CAF50" onclick="setColor(this)" style="background:#4CAF50"></div>
+      <div class="av-color" data-color="#2196F3" onclick="setColor(this)" style="background:#2196F3"></div>
+      <div class="av-color" data-color="#E91E63" onclick="setColor(this)" style="background:#E91E63"></div>
+      <div class="av-color" data-color="#FF5722" onclick="setColor(this)" style="background:#FF5722"></div>
+      <div class="av-color" data-color="#9C27B0" onclick="setColor(this)" style="background:#9C27B0"></div>
+      <div class="av-color" data-color="#FF9800" onclick="setColor(this)" style="background:#FF9800"></div>
+      <div class="av-color" data-color="#009688" onclick="setColor(this)" style="background:#009688"></div>
+      <div class="av-color" data-color="#212121" onclick="setColor(this)" style="background:#212121"></div>
+    </div>
+  </div>
+
+  <div id="login-form">
+    <input class="login-input" id="login-name" placeholder="Ton pseudo de dresseur 🎮" maxlength="16"/>
+    <div id="login-err"></div>
+    <button class="login-btn" onclick="doLogin()">⚡ COMMENCER L'AVENTURE !</button>
+  </div>
+</div>
+
+<!-- TOP HUD -->
+<div id="top-hud">
+  <div id="player-card" onclick="showTab('profile')">
+    <div id="player-avatar-hud"></div>
+    <div id="player-info">
+      <div id="player-name-hud">Dresseur</div>
+      <div id="player-lvl">Niveau 1</div>
+      <div id="xp-mini"><div id="xp-mini-fill" style="width:0%"></div></div>
+    </div>
+  </div>
+  <div id="top-right">
+    <div id="coins-hud">🪙 <span id="coins-txt">0</span></div>
+    <div id="active-bonus"></div>
+  </div>
+</div>
+
+<div id="map"></div>
+<div id="biome-badge"></div>
+<button id="ar-float" onclick="openARFree()">📷</button>
+
+<!-- NEARBY PANEL -->
+<div id="nearby-panel"></div>
+
+<!-- BOTTOM BAR -->
+<div id="bottom-bar">
+  <div id="nav-bar">
+    <button class="nav-btn active" id="nb-map" onclick="showTab('map')">🗺️<span>Carte</span></button>
+    <button class="nav-btn" id="nb-dex" onclick="showTab('dex')">📖<span>Dex</span></button>
+    <div id="catch-btn-wrap">
+      <div id="main-catch-btn" onclick="catchNearest()"></div>
+    </div>
+    <button class="nav-btn" id="nb-col" onclick="showTab('col')">🎒<span>Sac</span></button>
+    <button class="nav-btn" id="nb-shop" onclick="showTab('shop')">🛒<span>Shop</span></button>
+    <button class="nav-btn" id="nb-quest" onclick="showTab('quest')">📋<span>Quêtes</span></button>
+    <button class="nav-btn" id="nb-achieve" onclick="showTab('achieve')">🏆<span>Trophées</span></button>
+    <button class="nav-btn" id="nb-build" onclick="showTab('build')">🏗️<span>Build</span></button>
+    <button class="nav-btn" id="nb-bit" onclick="showTab('bit')">📈<span>BitRot</span></button>
+    <button class="nav-btn" id="nb-admin" onclick="showTab('admin')">⚙️<span>Admin</span></button>
+  </div>
+</div>
+
+<!-- POKÉDEX -->
+<div class="panel" id="panel-dex">
+  <div class="panel-hd"><h2>📖 BRAINRÔTDEX</h2><div id="dex-stats"></div><button class="close-btn" onclick="showTab('map')">✕</button></div>
+  <div class="panel-body">
+    <div class="filters" id="dex-filters"></div>
+    <div id="dex-grid"></div>
+  </div>
+</div>
+
+<!-- SAC / COLLECTION -->
+<div class="panel" id="panel-col">
+  <div class="panel-hd"><h2>🎒 MON SAC</h2><button class="close-btn" onclick="showTab('map')">✕</button></div>
+  <div class="panel-body"><div id="col-list"></div></div>
+</div>
+
+<!-- SHOP -->
+<div class="panel" id="panel-shop">
+  <div class="panel-hd"><h2>🛒 BOUTIQUE</h2><button class="close-btn" onclick="showTab('map')">✕</button></div>
+  <div class="panel-body">
+    <div id="shop-coins-bar">🪙 <span id="shop-coins-txt">0</span> coins</div>
+    <div id="shop-tabs">
+      <button class="shop-tab on" onclick="shopTab('lucky',this)">🎰 Lucky Rot</button>
+      <button class="shop-tab" onclick="shopTab('gp',this)">💎 Game Pass</button>
+    </div>
+    <div id="shop-lucky">
+      <div id="lucky-grid">
+        <div class="lucky-card" style="border-color:#F472B6">
+          <div class="lucky-icon">🎁</div>
+          <div class="lucky-name">Lucky Rot</div>
+          <div class="lucky-desc">Obtiens un brainrot Rare ou supérieur aléatoire !</div>
+          <div class="lucky-price">🪙 3 000</div>
+          <button class="lucky-btn" style="background:linear-gradient(135deg,#F472B6,#C084FC)" onclick="openLucky('normal')">Ouvrir !</button>
+        </div>
+        <div class="lucky-card" style="border-color:#FBBF24">
+          <div class="lucky-icon">👑</div>
+          <div class="lucky-name">Grande Lucky Rot</div>
+          <div class="lucky-desc">Garantit un brainrot Secret ou OG !</div>
+          <div class="lucky-price">🪙 5 000</div>
+          <button class="lucky-btn" style="background:linear-gradient(135deg,#FBBF24,#F87171)" onclick="openLucky('grand')">Ouvrir !</button>
+        </div>
+      </div>
+    </div>
+    <div id="shop-gp" style="display:none"><div id="gp-grid"></div></div>
+  </div>
+</div>
+
+<!-- QUÊTES -->
+<div class="panel" id="panel-quest">
+  <div class="panel-hd"><h2>📋 QUÊTES</h2><button class="close-btn" onclick="showTab('map')">✕</button></div>
+  <div class="panel-body">
+    <div id="streak-bar" style="background:rgba(255,140,0,0.15);border:1px solid rgba(255,140,0,0.4);border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px">
+      <div style="font-size:32px">🔥</div>
+      <div>
+        <div style="font-family:'Bangers',cursive;font-size:18px;color:#FF8C00">STREAK : <span id="streak-count">0</span> JOURS</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.5)">Joue chaque jour pour maintenir ton streak !</div>
+        <div style="font-size:10px;color:#FBBF24" id="streak-bonus"></div>
+      </div>
+    </div>
+    <div style="font-family:'Bangers',cursive;font-size:16px;letter-spacing:1px;margin-bottom:8px;color:#76ff03">📅 QUÊTES DU JOUR</div>
+    <div id="daily-quests" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px"></div>
+    <div style="font-family:'Bangers',cursive;font-size:16px;letter-spacing:1px;margin-bottom:8px;color:#60A5FA">⚡ ÉVÉNEMENT EN COURS</div>
+    <div id="event-box" style="background:rgba(0,0,0,0.4);border-radius:12px;padding:14px;border:1px solid rgba(96,165,250,0.3)"></div>
+  </div>
+</div>
+
+<!-- TROPHÉES -->
+<div class="panel" id="panel-achieve">
+  <div class="panel-hd"><h2>🏆 TROPHÉES</h2><button class="close-btn" onclick="showTab('map')">✕</button></div>
+  <div class="panel-body">
+    <div id="achieve-stats" style="background:rgba(0,0,0,0.3);border-radius:10px;padding:10px;margin-bottom:12px;font-size:12px;color:rgba(255,255,255,0.6)"></div>
+    <div id="achieve-grid" style="display:flex;flex-direction:column;gap:8px"></div>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div class="panel" id="panel-admin">
+  <div class="panel-hd"><h2>⚙️ ADMIN</h2><button class="close-btn" onclick="showTab('map')">✕</button></div>
+  <div class="panel-body">
+    <div id="admin-login" style="text-align:center;padding:20px">
+      <div style="font-size:40px;margin-bottom:12px">🔐</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:12px">Accès réservé à l'administrateur</div>
+      <input id="admin-pwd" type="password" placeholder="Mot de passe admin" style="width:100%;max-width:240px;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.3);color:#fff;font-size:14px;text-align:center;margin-bottom:10px">
+      <button onclick="adminLogin()" style="width:100%;max-width:240px;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,#4CAF50,#2E7D32);color:#fff;font-family:'Bangers',cursive;font-size:16px;cursor:pointer">CONNEXION</button>
+      <div id="admin-err" style="color:#F87171;font-size:11px;margin-top:6px"></div>
+    </div>
+    <div id="admin-panel" style="display:none">
+      <div style="background:rgba(0,150,0,0.15);border:1px solid rgba(0,200,0,0.3);border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:11px;color:#4ADE80">✅ Connecté en tant qu'administrateur</div>
+
+      <div style="font-family:'Bangers',cursive;font-size:15px;margin-bottom:8px">🪙 DONNER DES COINS</div>
+      <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+        <button onclick="adminGiveCoins(100)" style="padding:8px 12px;border-radius:8px;border:none;background:rgba(251,191,36,0.2);color:#FBBF24;cursor:pointer;font-weight:700;font-size:12px">+100</button>
+        <button onclick="adminGiveCoins(1000)" style="padding:8px 12px;border-radius:8px;border:none;background:rgba(251,191,36,0.2);color:#FBBF24;cursor:pointer;font-weight:700;font-size:12px">+1 000</button>
+        <button onclick="adminGiveCoins(10000)" style="padding:8px 12px;border-radius:8px;border:none;background:rgba(251,191,36,0.2);color:#FBBF24;cursor:pointer;font-weight:700;font-size:12px">+10 000</button>
+        <button onclick="adminGiveCoins(999999)" style="padding:8px 12px;border-radius:8px;border:none;background:rgba(251,191,36,0.3);color:#FBBF24;cursor:pointer;font-weight:700;font-size:12px">MAX</button>
+      </div>
+
+      <div style="font-family:'Bangers',cursive;font-size:15px;margin-bottom:8px">🧠 SPAWNER UN BRAINROT</div>
+      <select id="admin-spawn-select" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.4);color:#fff;font-size:12px;margin-bottom:6px">
+        <option value="">-- Choisir un brainrot --</option>
+      </select>
+      <button onclick="adminSpawn()" style="width:100%;padding:9px;border-radius:8px;border:none;background:linear-gradient(135deg,#C084FC,#818CF8);color:#fff;font-family:'Bangers',cursive;font-size:14px;cursor:pointer;margin-bottom:12px">⚡ SPAWNER À MA POSITION</button>
+
+      <div style="font-family:'Bangers',cursive;font-size:15px;margin-bottom:8px">🎁 DONNER UN BRAINROT</div>
+      <select id="admin-give-select" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.4);color:#fff;font-size:12px;margin-bottom:6px">
+        <option value="">-- Choisir un brainrot --</option>
+      </select>
+      <button onclick="adminGiveBrainrot()" style="width:100%;padding:9px;border-radius:8px;border:none;background:linear-gradient(135deg,#4ADE80,#16A34A);color:#fff;font-family:'Bangers',cursive;font-size:14px;cursor:pointer;margin-bottom:12px">🎁 AJOUTER À MA COLLECTION</button>
+
+      <div style="font-family:'Bangers',cursive;font-size:15px;margin-bottom:8px">⚡ CRÉER UN ÉVÉNEMENT</div>
+      <input id="admin-event-name" placeholder="Nom de l'événement" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.3);color:#fff;font-size:12px;margin-bottom:6px">
+      <input id="admin-event-desc" placeholder="Description" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.3);color:#fff;font-size:12px;margin-bottom:6px">
+      <select id="admin-event-rar" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.4);color:#fff;font-size:12px;margin-bottom:6px">
+        <option value="Rare">Rare augmenté</option>
+        <option value="Epic">Épique augmenté</option>
+        <option value="Legendary">Légendaire augmenté</option>
+        <option value="xp2">Double XP</option>
+        <option value="coins2">Double Coins</option>
+      </select>
+      <button onclick="adminCreateEvent()" style="width:100%;padding:9px;border-radius:8px;border:none;background:linear-gradient(135deg,#60A5FA,#2563EB);color:#fff;font-family:'Bangers',cursive;font-size:14px;cursor:pointer;margin-bottom:12px">🚀 LANCER L'ÉVÉNEMENT</button>
+
+      <div style="font-family:'Bangers',cursive;font-size:15px;margin-bottom:8px">🔄 RESET</div>
+      <button onclick="adminReset()" style="width:100%;padding:9px;border-radius:8px;border:none;background:rgba(248,113,113,0.2);color:#F87171;border:1px solid rgba(248,113,113,0.3);font-family:'Bangers',cursive;font-size:14px;cursor:pointer">⚠️ RESET MA PROGRESSION</button>
+
+      <div style="font-family:'Bangers',cursive;font-size:15px;margin:12px 0 8px">📊 STATS ACTUELLES</div>
+      <div id="admin-stats" style="font-size:11px;color:rgba(255,255,255,0.5);line-height:2"></div>
+    </div>
+  </div>
+</div>
+<div class="panel" id="panel-build">
+  <div class="panel-hd"><h2>🏗️ BÂTIMENTS</h2><button class="close-btn" onclick="showTab('map')">✕</button></div>
+  <div class="panel-body">
+    <div id="shop-coins-bar2" style="background:rgba(0,0,0,0.4);border-radius:10px;padding:10px 14px;margin-bottom:10px;font-size:13px;font-weight:900;color:#FBBF24;border:1px solid rgba(251,191,36,0.2)">🪙 <span id="build-coins-txt">0</span> coins &nbsp;·&nbsp; 💰 +<span id="passive-rate">0</span>/sec</div>
+    <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:10px;line-height:1.5">Les bâtiments génèrent des coins automatiquement chaque seconde. Place-les sur la carte depuis cet écran !</div>
+    <div id="build-grid" style="display:flex;flex-direction:column;gap:8px"></div>
+    <div style="margin-top:14px;font-family:'Bangers',cursive;font-size:16px;letter-spacing:1px;margin-bottom:8px">🗺️ MES BÂTIMENTS PLACÉS</div>
+    <div id="placed-grid" style="display:flex;flex-direction:column;gap:6px"></div>
+  </div>
+</div>
+
+<!-- BITBRAINROT -->
+<div class="panel" id="panel-bit">
+  <div class="panel-hd"><h2>📈 BITBRAINROT</h2><button class="close-btn" onclick="showTab('map')">✕</button></div>
+  <div class="panel-body">
+    <div style="background:rgba(0,0,0,0.4);border-radius:10px;padding:10px 14px;margin-bottom:10px;border:1px solid rgba(251,191,36,0.2)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.5)">TON SOLDE</div>
+          <div style="font-family:'Bangers',cursive;font-size:22px;color:#FBBF24">🪙 <span id="bit-coins">0</span></div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:10px;color:rgba(255,255,255,0.5)">TON PORTEFEUILLE BRT</div>
+          <div style="font-family:'Bangers',cursive;font-size:22px;color:#34D399">₿ <span id="bit-wallet">0.000</span> BRT</div>
+        </div>
+      </div>
+    </div>
+    <!-- Price display -->
+    <div style="background:rgba(0,0,0,0.4);border-radius:10px;padding:12px;margin-bottom:10px;text-align:center;border:1px solid rgba(52,211,153,0.3)">
+      <div style="font-size:10px;color:rgba(255,255,255,0.5);margin-bottom:4px">PRIX ACTUEL DU BRT</div>
+      <div style="font-family:'Bangers',cursive;font-size:36px;color:#34D399" id="brt-price">1 000</div>
+      <div style="font-size:10px;margin-top:2px" id="brt-change"></div>
+      <!-- Mini chart -->
+      <canvas id="brt-chart" width="260" height="60" style="margin-top:8px;border-radius:6px"></canvas>
+    </div>
+    <!-- Buy/Sell -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+      <div style="background:rgba(74,222,128,0.1);border-radius:10px;padding:10px;border:1px solid rgba(74,222,128,0.3)">
+        <div style="font-size:10px;color:#4ADE80;font-weight:700;margin-bottom:6px">📈 ACHETER BRT</div>
+        <input id="buy-amount" type="number" placeholder="Montant en coins" style="width:100%;padding:6px 8px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.3);color:#fff;font-size:11px;margin-bottom:6px">
+        <div style="font-size:9px;color:rgba(255,255,255,0.4);margin-bottom:6px">≈ <span id="buy-brt-preview">0.000</span> BRT</div>
+        <button onclick="buyBRT()" style="width:100%;padding:8px;border-radius:8px;border:none;background:linear-gradient(135deg,#4ADE80,#16A34A);color:#fff;font-family:'Bangers',cursive;font-size:14px;cursor:pointer">ACHETER</button>
+      </div>
+      <div style="background:rgba(248,113,113,0.1);border-radius:10px;padding:10px;border:1px solid rgba(248,113,113,0.3)">
+        <div style="font-size:10px;color:#F87171;font-weight:700;margin-bottom:6px">📉 VENDRE BRT</div>
+        <input id="sell-amount" type="number" placeholder="Montant en BRT" step="0.001" style="width:100%;padding:6px 8px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.3);color:#fff;font-size:11px;margin-bottom:6px">
+        <div style="font-size:9px;color:rgba(255,255,255,0.4);margin-bottom:6px">≈ <span id="sell-coins-preview">0</span> coins</div>
+        <button onclick="sellBRT()" style="width:100%;padding:8px;border-radius:8px;border:none;background:linear-gradient(135deg,#F87171,#DC2626);color:#fff;font-family:'Bangers',cursive;font-size:14px;cursor:pointer">VENDRE</button>
+      </div>
+    </div>
+    <!-- History -->
+    <div style="font-family:'Bangers',cursive;font-size:14px;letter-spacing:1px;margin-bottom:6px">📋 HISTORIQUE</div>
+    <div id="bit-history" style="display:flex;flex-direction:column;gap:4px;max-height:150px;overflow-y:auto"></div>
+    <div style="margin-top:10px;padding:8px;background:rgba(0,0,0,0.3);border-radius:8px;font-size:10px;color:rgba(255,255,255,0.4);line-height:1.5">
+      ⚠️ Le BRT fluctue selon l'activité des joueurs et le hasard. Investis prudemment !
+    </div>
+  </div>
+</div>
+
+<!-- BUILDING PLACEMENT MODAL -->
+<div id="build-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:4000;display:none;align-items:center;justify-content:center">
+  <div style="background:linear-gradient(135deg,#1B5E20,#2E7D32);border-radius:20px;padding:24px;max-width:280px;width:90%;text-align:center;border:1px solid rgba(76,175,80,0.4)">
+    <div id="bm-icon" style="font-size:48px;margin-bottom:8px"></div>
+    <div id="bm-name" style="font-family:'Bangers',cursive;font-size:22px;margin-bottom:4px"></div>
+    <div id="bm-desc" style="font-size:11px;color:rgba(255,255,255,0.6);margin-bottom:12px"></div>
+    <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-bottom:12px">📍 Sera placé à ta position actuelle</div>
+    <button onclick="confirmBuild()" style="width:100%;padding:12px;border-radius:10px;border:none;background:linear-gradient(135deg,#4CAF50,#2E7D32);color:#fff;font-family:'Bangers',cursive;font-size:18px;cursor:pointer;margin-bottom:8px">🏗️ CONSTRUIRE !</button>
+    <button onclick="document.getElementById('build-modal').style.display='none'" style="width:100%;padding:8px;border-radius:10px;border:1px solid rgba(255,255,255,0.2);background:none;color:rgba(255,255,255,0.6);font-size:13px;cursor:pointer">Annuler</button>
+  </div>
+</div>
+<div id="lucky-modal">
+  <div id="lucky-box">
+    <div id="lucky-spinning">
+      <div id="lucky-spin-icon">🎁</div>
+      <div style="font-family:'Bangers',cursive;font-size:18px;margin-top:8px;color:rgba(255,255,255,0.7)">Ouverture...</div>
+    </div>
+    <div id="lucky-result">
+      <div id="lucky-result-icon"></div>
+      <div id="lucky-result-name"></div>
+      <div id="lucky-result-rar"></div>
+      <button class="lucky-close-btn" onclick="closeLucky()">Super ! 🎉</button>
+    </div>
+  </div>
+</div>
+
+<!-- CATCH SCREEN — style Pokémon Go -->
+<div id="catch-screen">
+  <div id="catch-bg"></div>
+  <div id="catch-grass"></div>
+  <div id="catch-info-bar">
+    <div id="catch-name-top"></div>
+    <div id="catch-rar-top"></div>
+    <div id="catch-mut-top"></div>
+  </div>
+  <div id="catch-hp-section">
+    <div id="catch-hp-label">RÉSISTANCE</div>
+    <div id="catch-hp-bar-wrap"><div id="catch-hp-bar" style="width:100%"></div></div>
+  </div>
+  <div id="catch-creature-wrap">
+    <div id="catch-creature-img"></div>
+    <div id="catch-shadow"></div>
+  </div>
+  <div id="catch-escape">ÉCHAPPÉ !</div>
+  <!-- Minigame overlay -->
+  <div id="mg-overlay">
+    <div id="mg-box">
+      <div id="mg-dodge-area" style="display:none">
+        <div style="font-size:12px;color:#F87171;font-weight:900;margin-bottom:6px">⚠️ NE TOUCHE PAS !</div>
+        <div id="mg-countdown">5</div>
+        <div id="mg-dodge-creature"></div>
+        <div id="mg-dodge-hp" style="height:5px;background:rgba(255,255,255,0.1);border-radius:3px;margin-top:8px;overflow:hidden">
+          <div id="mg-dodge-bar" style="height:100%;width:100%;background:linear-gradient(90deg,#4ADE80,#FBBF24);transition:width 0.1s"></div>
+        </div>
+      </div>
+      <div id="mg-timing-area" style="display:none">
+        <div style="font-size:12px;color:rgba(255,255,255,0.7);font-weight:700;margin-bottom:6px">🎯 Tape dans la zone verte !</div>
+        <div id="mg-timing-track" onclick="timingTap()">
+          <div id="mg-timing-zone"></div>
+          <div id="mg-timing-cursor"></div>
+        </div>
+        <div id="mg-timing-lives" style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:4px"></div>
+      </div>
+    </div>
+  </div>
+  <!-- Throw ball game -->
+  <div id="throw-area">
+    <div id="throw-ring" style="display:none"></div>
+    <div id="throw-ball-visual"></div>
+  </div>
+  <div id="catch-bottom">
+    <div id="catch-already"></div>
+    <div id="ball-hint">Tape la balle pour lancer !</div>
+    <div id="brainrot-ball" onclick="throwBall()"></div>
+    <div style="display:flex;gap:8px">
+      <button id="catch-ar-btn" onclick="openAR()">📷 AR</button>
+      <button id="catch-run-btn" onclick="closeCatch()">🏃 Fuir</button>
+    </div>
+  </div>
+</div>
+
+<!-- AR -->
+<div id="ar-modal">
+  <video id="ar-video" autoplay playsinline muted style="display:none"></video>
+  <div id="ar-no-cam">📵 Caméra non disponible<br><small>Utilise un téléphone</small></div>
+  <div id="ar-ui">
+    <div id="ar-top-bar">
+      <div id="ar-creature-name"></div>
+      <div id="ar-rar-badge"></div>
+      <button id="ar-close-btn" onclick="closeAR()">✕</button>
+    </div>
+    <div id="ar-dist"></div>
+  </div>
+  <div id="ar-creature-ar"></div>
+  <div id="ar-compass-wrap">
+    <div id="ar-compass-arrow">🧭</div>
+    <div id="ar-compass-meters"></div>
+    <div id="ar-compass-txt">Marche vers le brainrot !</div>
+  </div>
+  <div id="ar-ball" onclick="closeAR();throwBall()"></div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ══════════════════════════════════
+// DATA
+// ══════════════════════════════════
+const RARITY={
+  Common:        {color:"#9CA3AF",xp:10,  coins:2,  hp:1, spawn:0.40},
+  Rare:          {color:"#60A5FA",xp:30,  coins:8,  hp:2, spawn:0.25},
+  Epic:          {color:"#C084FC",xp:75,  coins:20, hp:3, spawn:0.15},
+  Legendary:     {color:"#FBBF24",xp:200, coins:60, hp:5, spawn:0.08},
+  Mythic:        {color:"#F87171",xp:500, coins:150,hp:7, spawn:0.04},
+  "Brainrot God":{color:"#34D399",xp:1500,coins:400,hp:10,spawn:0.015},
+  Secret:        {color:"#F472B6",xp:5000,coins:1000,hp:15,spawn:0.004},
+  OG:            {color:"#FCD34D",xp:20000,coins:5000,hp:20,spawn:0.001},
+};
+
+const MUTATIONS=[
+  null,null,null,null,null,
+  {name:"⚡ Électrique",bonus:"xp2"},
+  {name:"🔥 Enflammé",bonus:"coins2"},
+  {name:"❄️ Glacial",bonus:"rare+"},
+  {name:"👑 Royal",bonus:"legend+"},
+  {name:"🌈 Arc-en-ciel",bonus:"all3"},
+];
+
+const GAMEPASSES=[
+  {id:"radar", icon:"📡",name:"Radar Pro",    desc:"Vois jusqu'à 500m",        price:100,  duration:0},
+  {id:"luck",  icon:"🍀",name:"Luck Boost",   desc:"Mutations x3 (3min)",      price:250,  duration:180},
+  {id:"magnet",icon:"🧲",name:"Magnet",       desc:"Rayon x2 (3min)",          price:500,  duration:180},
+  {id:"xp2",   icon:"⚡",name:"Double XP",    desc:"XP x2 (3min)",             price:750,  duration:180},
+  {id:"legend",icon:"👑",name:"Legend Pass",  desc:"Légendaires x3 (3min)",    price:2000, duration:180},
+];
+
+const BRAINROTS=[
+  // COMMON — 20 espèces différentes
+  {id:1,  e:"🍕",nom:"Noobini Pizzanini",     rar:"Common",     biomes:["city","food"],       desc:"Le brainrot le plus commun"},
+  {id:2,  e:"🦈",nom:"Tralalero Tralala",     rar:"Common",     biomes:["water"],             desc:"Requin à 3 pattes avec des Nike"},
+  {id:3,  e:"🐒",nom:"Chimpanzini Bananini",  rar:"Common",     biomes:["forest","park"],     desc:"Singe obsédé par les bananes"},
+  {id:4,  e:"🐪",nom:"Frigo Camelo",          rar:"Common",     biomes:["city","farm"],       desc:"Chameau avec un frigo à la bosse"},
+  {id:5,  e:"☕",nom:"Capuccino Assassino",   rar:"Common",     biomes:["food","city"],       desc:"Ninja qui surgit des tasses de café"},
+  {id:6,  e:"🪿",nom:"Bombombini Gusini",     rar:"Common",     biomes:["water","park"],      desc:"Oie explosive très en colère"},
+  {id:7,  e:"🐄",nom:"La Vacca Saturno",      rar:"Common",     biomes:["farm"],              desc:"Vache de Saturne aux anneaux lactés"},
+  {id:8,  e:"🐍",nom:"Pastino Serpentino",    rar:"Common",     biomes:["food","forest"],     desc:"Serpent de spaghettis al dente"},
+  {id:9,  e:"🐭",nom:"Topolino Formaggino",   rar:"Common",     biomes:["city","food"],       desc:"Souris avec tête de fromage"},
+  {id:10, e:"🐓",nom:"Gallino Robotino",      rar:"Common",     biomes:["farm"],              desc:"Coq mécanique qui pond des vis"},
+  {id:11, e:"🐟",nom:"Pescolino Volantino",   rar:"Common",     biomes:["water"],             desc:"Poisson qui vole très mal"},
+  {id:12, e:"🐌",nom:"Lumachino Velochino",   rar:"Common",     biomes:["forest","park"],     desc:"Escargot avec roues de Ferrari"},
+  {id:13, e:"🐷",nom:"Maialino Cannolino",    rar:"Common",     biomes:["farm","food"],       desc:"Cochon roulé dans les cannolis"},
+  {id:14, e:"🦆",nom:"Paperino Spaventino",   rar:"Common",     biomes:["water","park"],      desc:"Canard terrifiant au regard vide"},
+  {id:15, e:"🍄",nom:"Fungino Saltarino",     rar:"Common",     biomes:["forest"],            desc:"Champignon qui rebondit partout"},
+  {id:16, e:"🐶",nom:"Cagnolino Biscottino",  rar:"Common",     biomes:["city","park"],       desc:"Chien qui court avec des biscuits"},
+  {id:17, e:"🐸",nom:"Rana Gelosa",           rar:"Common",     biomes:["water","park"],      desc:"Grenouille jalouse de tout"},
+  {id:18, e:"🐝",nom:"Ape Motorina",          rar:"Common",     biomes:["farm","park"],       desc:"Abeille avec moteur de scooter"},
+  {id:19, e:"🌻",nom:"Girasole Robotico",     rar:"Common",     biomes:["farm"],              desc:"Tournesol avec bras robotiques"},
+  {id:20, e:"🦋",nom:"Farfalla Pastosa",      rar:"Common",     biomes:["park","forest"],     desc:"Papillon fait de pâte à pain"},
+  // RARE — 15 espèces
+  {id:21, e:"🐊",nom:"Bombardiro Crocodilo",  rar:"Rare",       biomes:["water","city"],      desc:"Crocodile corps d'avion bombardier"},
+  {id:22, e:"🩰",nom:"Ballerina Cappuccina",  rar:"Rare",       biomes:["food","city"],       desc:"Ballerine avec tête de cappuccino"},
+  {id:23, e:"🐘",nom:"Lirilì Larilà",         rar:"Rare",       biomes:["mountain","forest"], desc:"Éléphant avec cornes de montagne"},
+  {id:24, e:"🐧",nom:"Pan Piano Pino",        rar:"Rare",       biomes:["water","food"],      desc:"Pingouin qui distribue du pain"},
+  {id:25, e:"🦒",nom:"Giraffa Crostata",      rar:"Rare",       biomes:["farm","park"],       desc:"Girafe dont le cou est une tarte"},
+  {id:26, e:"🌵",nom:"Cactoro Magnifico",     rar:"Rare",       biomes:["farm","mountain"],   desc:"Cactus avec cornes de taureau"},
+  {id:27, e:"🐬",nom:"Delfino Palloncino",    rar:"Rare",       biomes:["water"],             desc:"Dauphin fait de ballons"},
+  {id:28, e:"🦊",nom:"Volpino Elettrico",     rar:"Rare",       biomes:["forest","park"],     desc:"Renard qui génère de l'électricité"},
+  {id:29, e:"🦁",nom:"Leone Pastaio",         rar:"Rare",       biomes:["food","city"],       desc:"Lion avec crinière de tagliatelles"},
+  {id:30, e:"🦅",nom:"Karker Sahur",          rar:"Rare",       biomes:["mountain","forest"], desc:"Aigle cosmique du Sahur"},
+  {id:31, e:"🐺",nom:"Lupo Pizzaiolo",        rar:"Rare",       biomes:["forest","food"],     desc:"Loup pizzaiolo avec four à bois"},
+  {id:32, e:"🦀",nom:"Granchio Chitarrino",   rar:"Rare",       biomes:["water"],             desc:"Crabe qui joue de la guitare"},
+  {id:33, e:"🦚",nom:"Pavone Specchio",       rar:"Rare",       biomes:["park","city"],       desc:"Paon dont les plumes sont des miroirs"},
+  {id:34, e:"🐯",nom:"Tigre Bibliotecario",   rar:"Rare",       biomes:["city"],              desc:"Tigre gardien bibliothécaire"},
+  {id:35, e:"🦩",nom:"Flamingo Avvocatino",   rar:"Rare",       biomes:["city","water"],      desc:"Flamant rose avocat très agressif"},
+  // EPIC — 10 espèces
+  {id:36, e:"🥁",nom:"Tung Tung Tung Sahur",  rar:"Epic",       biomes:["city","cemetery"],   desc:"Bâton cosmique qui frappe en rythme"},
+  {id:37, e:"🪆",nom:"Boneca Ambalabu",       rar:"Epic",       biomes:["city","cemetery"],   desc:"Poupée reptile qui se régénère"},
+  {id:38, e:"❄️",nom:"Brr Brr Patapim",       rar:"Epic",       biomes:["mountain","water"],  desc:"Créature arctique qui gèle tout"},
+  {id:39, e:"🚜",nom:"Tracotuco Birdo",       rar:"Epic",       biomes:["farm"],              desc:"Oiseau avec corps de tracteur"},
+  {id:40, e:"🐲",nom:"Draghino Lasagnoso",    rar:"Epic",       biomes:["food","mountain"],   desc:"Dragon qui crache des lasagnes"},
+  {id:41, e:"🐋",nom:"Capitano Moby",         rar:"Epic",       biomes:["water"],             desc:"Baleine capitaine des mers"},
+  {id:42, e:"🦍",nom:"Gorillino Cuocino",     rar:"Epic",       biomes:["food","city"],       desc:"Gorille chef cuisinier étoilé"},
+  {id:43, e:"🦄",nom:"Unicornis Espresso",    rar:"Epic",       biomes:["food","city"],       desc:"Licorne dont la corne est un café"},
+  {id:44, e:"🐙",nom:"Octopussini Tentacloni",rar:"Epic",       biomes:["water"],             desc:"Poulpe aux tentacules de spaghettis"},
+  {id:45, e:"🐻",nom:"Orso Frigorifico",      rar:"Epic",       biomes:["mountain","forest"], desc:"Ours polaire qui vend des glaces"},
+  // LEGENDARY — 8 espèces
+  {id:46, e:"👾",nom:"Glorbo Supremo",        rar:"Legendary",  biomes:["city"],              desc:"Forme suprême de toutes les créatures"},
+  {id:47, e:"🐉",nom:"Drago Pastasciutto",    rar:"Legendary",  biomes:["mountain","city"],   desc:"Dragon dont les écailles sont des pâtes"},
+  {id:48, e:"🌌",nom:"Nebuloso Galassino",    rar:"Legendary",  biomes:["mountain"],          desc:"Créature cosmique née d'une nébuleuse"},
+  {id:49, e:"🧛",nom:"Vampiro Risottino",     rar:"Legendary",  biomes:["cemetery","city"],   desc:"Vampire qui ne boit que du risotto"},
+  {id:50, e:"👑",nom:"Re Pomodorino",         rar:"Legendary",  biomes:["farm","food"],       desc:"Roi tomate qui règne sur les potagers"},
+  {id:51, e:"🫚",nom:"Dragon Gingerini",      rar:"Legendary",  biomes:["food","mountain"],   desc:"Dragon gingembre aux pouvoirs ardents"},
+  {id:52, e:"🦸",nom:"Superomino Pastino",    rar:"Legendary",  biomes:["city"],              desc:"Super-héros fait de pasta"},
+  {id:53, e:"🐕",nom:"Cerberus Pastino",      rar:"Legendary",  biomes:["cemetery"],          desc:"Cerbère à 3 têtes de pasta"},
+  // MYTHIC — 5
+  {id:54, e:"💥",nom:"Omega Bombardiro",      rar:"Mythic",     biomes:["city"],              desc:"Version ultime de Bombardiro"},
+  {id:55, e:"⚡",nom:"Dio Pastasciutto",      rar:"Mythic",     biomes:["mountain","city"],   desc:"Le dieu des pâtes"},
+  {id:56, e:"🧀",nom:"Mutante Mozzarellone",  rar:"Mythic",     biomes:["food","farm"],       desc:"Mutant mozzarella infini"},
+  {id:57, e:"🌟",nom:"Il Brainrot Supremo",   rar:"Mythic",     biomes:["city","mountain"],   desc:"Le créateur de tous les brainrots"},
+  {id:58, e:"🧟",nom:"Frankensteinino",       rar:"Mythic",     biomes:["cemetery"],          desc:"Monstre recousu avec des pâtes"},
+  // BRAINROT GOD — 3
+  {id:59, e:"🦅",nom:"Griffin",               rar:"Brainrot God",biomes:["mountain","forest"],desc:"Griffon légendaire rarissime"},
+  {id:60, e:"🐻",nom:"Love Love Bear",        rar:"Brainrot God",biomes:["forest","park"],    desc:"Ours cosmique de l'amour"},
+  {id:61, e:"🏇",nom:"Headless Horseman",     rar:"Brainrot God",biomes:["cemetery","city"],  desc:"Cavalier sans tête venu d'ailleurs"},
+  // SECRET — 2
+  {id:62, e:"🚽",nom:"Skibidi Toilet",        rar:"Secret",     biomes:["city"],              desc:"~2500 existants dans le monde"},
+  {id:63, e:"🐱",nom:"Meowl",                rar:"Secret",     biomes:["forest","cemetery"], desc:"Chat-hibou rarissime"},
+  // OG — 1
+  {id:64, e:"🍓",nom:"Strawberry Elephant",   rar:"OG",         biomes:["farm","forest"],     desc:"LE brainrot OG ultime"},
+];
+
+// ══════════════════════════════════
+// STATE
+// ══════════════════════════════════
+const S={
+  level:1,xp:0,xpMax:100,coins:0,
+  caught:{},passes:{}, // passes: {id: expireTimestamp or true}
+  pos:null,markers:[],arenas:[],current:null,currentMarker:null,
+  hp:0,hpMax:0,gameActive:false,
+  player:{name:"",face:"🧠",hat:"",color:"#4CAF50"},
+  throwCount:0,
+};
+
+function load(){
+  try{const d=JSON.parse(localStorage.getItem("bgo6")||"{}");
+    ["caught","passes","level","xp","xpMax","coins","player","buildings","brtWallet"].forEach(k=>{if(d[k]!==undefined)S[k]=d[k];});
+    if(S.brtWallet)brtWallet=S.brtWallet;
+    if(!S.buildings)S.buildings=[];
+  }catch(e){}
+}
+function save(){localStorage.setItem("bgo6",JSON.stringify({caught:S.caught,passes:S.passes,level:S.level,xp:S.xp,xpMax:S.xpMax,coins:S.coins,player:S.player,buildings:S.buildings||[],brtWallet}));}
+
+function hasPass(id){
+  const p=S.passes[id];
+  if(!p)return false;
+  if(p===true)return true; // permanent (radar)
+  return Date.now()<p;
+}
+function activatePass(id,duration){
+  if(duration===0){S.passes[id]=true;}
+  else{S.passes[id]=Date.now()+duration*1000;}
+  save();updateBonusDisplay();
+}
+function updateBonusDisplay(){
+  const active=Object.entries(S.passes).filter(([id,v])=>v===true||(typeof v==="number"&&Date.now()<v));
+  const el=document.getElementById("active-bonus");
+  if(active.length>0){
+    const gp=GAMEPASSES.find(g=>g.id===active[0][0]);
+    el.style.display="block";
+    const remain=typeof S.passes[active[0][0]]==="number"?Math.ceil((S.passes[active[0][0]]-Date.now())/1000):"∞";
+    el.textContent=(gp?gp.icon:"⚡")+" "+(typeof remain==="number"?remain+"s":remain);
+  } else el.style.display="none";
+}
+setInterval(updateBonusDisplay,1000);
+
+function gainXP(n){
+  const m=hasPass("xp2")?2:1;S.xp+=n*m;
+  while(S.xp>=S.xpMax){S.xp-=S.xpMax;S.level++;S.xpMax=Math.floor(S.xpMax*1.4);toast("🎉 NIVEAU "+S.level+" !");}
+  hud();save();
+}
+function gainCoins(n){S.coins+=n;hud();save();}
+
+function hud(){
+  const face=S.player.face||"🧠";const hat=S.player.hat||"";
+  const col=S.player.color||"#4CAF50";
+  const av=document.getElementById("player-avatar-hud");
+  if(av){
+    av.style.background=`linear-gradient(135deg,${col},${col}99)`;
+    // Show hat on top + face below
+    av.innerHTML=hat
+      ?`<div style="display:flex;flex-direction:column;align-items:center;line-height:1"><span style="font-size:13px">${hat}</span><span style="font-size:16px">${face}</span></div>`
+      :`<span style="font-size:20px">${face}</span>`;
+  }
+  const pn=document.getElementById("player-name-hud");
+  if(pn)pn.textContent=S.player.name||"Dresseur";
+  const pl=document.getElementById("player-lvl");
+  if(pl)pl.textContent="Niveau "+S.level;
+  const xf=document.getElementById("xp-mini-fill");
+  if(xf)xf.style.width=(S.xp/S.xpMax*100)+"%";
+  const ct=document.getElementById("coins-txt");
+  if(ct)ct.textContent=S.coins;
+  const sc=document.getElementById("shop-coins-txt");
+  if(sc)sc.textContent=S.coins;
+  document.getElementById("hd-caught").textContent=Object.keys(S.caught).length;
+}
+
+// ══════════════════════════════════
+// AVATAR BUILDER
+// ══════════════════════════════════
+let av={face:"🧠",hat:"",color:"#4CAF50"};
+function setAv(type,btn){
+  document.querySelectorAll(`[data-type="${type}"]`).forEach(b=>b.classList.remove("sel"));
+  btn.classList.add("sel");
+  av[type]=btn.dataset.val;
+  updatePreview();
+}
+function setColor(btn){
+  document.querySelectorAll(".av-color").forEach(b=>b.classList.remove("sel"));
+  btn.classList.add("sel");
+  av.color=btn.dataset.color;
+  updatePreview();
+}
+function updatePreview(){
+  const p=document.getElementById("avatar-preview");
+  p.style.background=`linear-gradient(135deg,${av.color},${av.color}99)`;
+  p.innerHTML=av.hat
+    ?`<div style="display:flex;flex-direction:column;align-items:center;line-height:1.1"><span style="font-size:22px">${av.hat}</span><span style="font-size:28px">${av.face}</span></div>`
+    :`<span style="font-size:40px">${av.face}</span>`;
+}
+
+// ══════════════════════════════════
+// LOGIN
+// ══════════════════════════════════
+function doLogin(){
+  const name=document.getElementById("login-name").value.trim();
+  if(!name){document.getElementById("login-err").textContent="Entre ton pseudo !";return;}
+  S.player={name,face:av.face,hat:av.hat,color:av.color};
+  save();startGame();
+}
+function startGame(){
+  document.getElementById("login-screen").style.display="none";
+  document.getElementById("top-hud").style.display="block";
+  document.getElementById("bottom-bar").style.display="flex";
+  document.getElementById("ar-float").style.display="flex";
+  hud();
+  initMap();
+}
+
+load();
+if(S.player&&S.player.name){
+  window.addEventListener("load",()=>setTimeout(startGame,200));
+} else {
+  if(S.player&&S.player.color){av={...S.player};}
+}
+
+// ══════════════════════════════════
+// MAP
+// ══════════════════════════════════
+let map,playerM,currentBiome=null;
+
+// Init map immediately on page load — BEFORE login
+// This ensures Leaflet has correct dimensions
+window.addEventListener("DOMContentLoaded",()=>{
+  map=L.map("map",{zoomControl:false,attributionControl:false});
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(map);
+  map.setView([48.8566,2.3522],15); // Default Paris while waiting for GPS
+});
+
+function initMap(){
+  // Map already initialized — just activate it and get GPS
+  document.getElementById("map").classList.add("active");
+  setTimeout(()=>map.invalidateSize(true),100);
+  setTimeout(()=>map.invalidateSize(true),600);
+  navigator.geolocation?navigator.geolocation.watchPosition(onPos,()=>fallback(),{enableHighAccuracy:true,maximumAge:3000,timeout:12000}):fallback();
+}
+function fallback(){onPos({coords:{latitude:48.8566,longitude:2.3522}});}
+function onPos(p){
+  const lat=p.coords.latitude,lng=p.coords.longitude;
+  S.pos=[lat,lng];
+  if(!playerM){
+    map.setView([lat,lng],17);
+    // Player marker — avatar style
+    const col=S.player.color||"#4CAF50";
+    const face=S.player.hat||S.player.face||"🧠";
+    playerM=L.marker([lat,lng],{icon:L.divIcon({className:"",
+      html:`<div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,${col},${col}99);border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 0 0 3px rgba(0,0,0,0.3),0 4px 12px rgba(0,0,0,0.5)">${face}</div>`,
+      iconAnchor:[22,22]})}).addTo(map);
+    spawnAll();spawnArenas();detectBiome(lat,lng);
+    // Show existing buildings on map
+    (S.buildings||[]).forEach((b,i)=>addBuildingMarker(b,i));
+  } else {
+    playerM.setLatLng([lat,lng]);
+    checkNear();
+    // Update biome periodically
+    if(!window._lastBiome||Date.now()-window._lastBiome>30000)detectBiome(lat,lng);
+  }
+}
+
+function dist(a,b,c,d){
+  const R=6371000,dL=(c-a)*Math.PI/180,dG=(d-b)*Math.PI/180;
+  const x=Math.sin(dL/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dG/2)**2;
+  return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
+}
+
+// ══════════════════════════════════
+// BIOME
+// ══════════════════════════════════
+async function detectBiome(lat,lng){
+  window._lastBiome=Date.now();
+  try{
+    const q=`[out:json][timeout:5];(way(around:80,${lat},${lng})[natural];way(around:80,${lat},${lng})[landuse];way(around:80,${lat},${lng})[leisure];way(around:80,${lat},${lng})[amenity~"restaurant|fast_food|cafe"];way(around:80,${lat},${lng})[waterway];);out tags 1;`;
+    const res=await fetch("https://overpass-api.de/api/interpreter?data="+encodeURIComponent(q));
+    const data=await res.json();
+    const tags={};data.elements.forEach(el=>Object.assign(tags,el.tags||{}));
+    let biome="city";
+    if(tags.natural==="water"||tags.waterway)biome="water";
+    else if(tags.natural==="wood"||tags.natural==="forest"||tags.landuse==="forest")biome="forest";
+    else if(tags.leisure==="park"||tags.leisure==="garden")biome="park";
+    else if(tags.landuse==="farmland"||tags.landuse==="farm"||tags.landuse==="meadow")biome="farm";
+    else if(tags.amenity)biome="food";
+    else if(tags.natural==="peak"||tags.natural==="cliff")biome="mountain";
+    else if(tags.landuse==="cemetery")biome="cemetery";
+    const labels={water:"🌊 Eau",forest:"🌲 Forêt",park:"🌿 Parc",farm:"🌾 Ferme",food:"🍕 Resto",mountain:"⛰️ Montagne",cemetery:"⚰️ Cimetière",city:"🏙️ Ville"};
+    const colors={water:"#38BDF8",forest:"#4ADE80",park:"#86EFAC",farm:"#FCD34D",food:"#F87171",mountain:"#A78BFA",cemetery:"#6B7280",city:"#94A3B8"};
+    if(biome!==currentBiome){
+      currentBiome=biome;
+      const bl=document.getElementById("biome-badge");
+      bl.textContent=labels[biome]||"🏙️ Ville";
+      bl.style.color=colors[biome]||"#94A3B8";
+      bl.classList.add("show");setTimeout(()=>bl.classList.remove("show"),4000);
+      spawnAll();
+    }
+  }catch(e){currentBiome="city";}
+}
+
+// ══════════════════════════════════
+// SPAWN
+// ══════════════════════════════════
+const spawnedIds=new Set(); // Track which IDs are currently on map
+
+function wRarity(){
+  const w={...Object.fromEntries(Object.entries(RARITY).map(([k,v])=>[k,v.spawn]))};
+  if(hasPass("legend")){w["Legendary"]*=3;w["Mythic"]*=2;}
+  const t=Object.values(w).reduce((a,b)=>a+b,0);
+  let r=Math.random()*t,a=0;
+  for(const[n,v]of Object.entries(w)){a+=v;if(r<a)return n;}
+  return "Common";
+}
+
+function spawnAll(){
+  if(!S.pos)return;
+  S.markers.forEach(m=>map.removeLayer(m));S.markers=[];spawnedIds.clear();
+  const c=hasPass("magnet")?22:15;
+  const usedIds=new Set();
+  let spawned=0;let attempts=0;
+  while(spawned<c&&attempts<c*5){
+    attempts++;
+    const rar=wRarity();
+    let pool=BRAINROTS.filter(b=>b.rar===rar&&!usedIds.has(b.id));
+    if(currentBiome){const bp=pool.filter(b=>b.biomes.includes(currentBiome));if(bp.length>0)pool=bp;}
+    if(!pool.length){pool=BRAINROTS.filter(b=>b.rar===rar&&!usedIds.has(b.id));if(!pool.length)continue;}
+    const b=pool[Math.floor(Math.random()*pool.length)];
+    usedIds.add(b.id); // no duplicate species in same spawn
+    spawnMarker(b);spawned++;
+  }
+  setTimeout(spawnAll,60000);
+}
+
+function spawnMarker(b){
+  if(!S.pos)return;
+  const col=RARITY[b.rar].color;
+  const range=hasPass("radar")?0.003:0.0014;
+  const minR=0.0004; // min ~44m
+  const angle=Math.random()*Math.PI*2;
+  const r=minR+Math.random()*range;
+  const lat=S.pos[0]+Math.cos(angle)*r;
+  const lng=S.pos[1]+Math.sin(angle)*r*1.3;
+  const svg=getIcon(b.nom,28);
+  const inner=svg?`<div style="width:28px;height:28px;border-radius:4px;overflow:hidden">${svg}</div>`:b.e;
+  const marker=L.marker([lat,lng],{icon:L.divIcon({className:"",
+    html:`<div class="b-marker" style="border-color:${col};color:${col}">${inner}</div>`,
+    iconSize:[50,50],iconAnchor:[25,25]})}).addTo(map);
+  marker._b=b;marker._lat=lat;marker._lng=lng;
+  marker.on("click",()=>{
+    if(!S.pos)return;
+    const d=dist(S.pos[0],S.pos[1],lat,lng);
+    const max=hasPass("magnet")?400:200;
+    if(d>max){toast("📍 Trop loin ! ("+Math.round(d)+"m)");return;}
+    openCatch(b,marker);
+  });
+  S.markers.push(marker);
+}
+
+// ══════════════════════════════════
+// ARENAS
+// ══════════════════════════════════
+const ARENA_NAMES=["Arène Tralalero","Arène Bombardiro","Arène Suprême","Arène du Sahur","Arène OG"];
+function spawnArenas(){
+  if(!S.pos)return;
+  S.arenas.forEach(m=>map.removeLayer(m));S.arenas=[];
+  for(let i=0;i<3;i++){
+    const angle=Math.random()*Math.PI*2;
+    const r=0.002+Math.random()*0.003;
+    const lat=S.pos[0]+Math.cos(angle)*r;
+    const lng=S.pos[1]+Math.sin(angle)*r;
+    const name=ARENA_NAMES[Math.floor(Math.random()*ARENA_NAMES.length)];
+    const marker=L.marker([lat,lng],{icon:L.divIcon({className:"",
+      html:`<div class="arena-marker"><div class="arena-icon">⚔️</div>${name.split(" ")[1]}</div>`,
+      iconSize:[54,54],iconAnchor:[27,27]})}).addTo(map);
+    marker.on("click",()=>toast("⚔️ "+name+" — Combats bientôt disponibles !"));
+    S.arenas.push(marker);
+  }
+}
+
+// ══════════════════════════════════
+// NEARBY
+// ══════════════════════════════════
+let lastNearAlert=0;
+function checkNear(){
+  if(!S.pos)return;
+  const nearList=[];
+  S.markers.forEach(m=>{
+    const d=dist(S.pos[0],S.pos[1],m.getLatLng().lat,m.getLatLng().lng);
+    const el=m.getElement();
+    if(el){const bm=el.querySelector(".b-marker");if(bm)bm.classList.toggle("near",d<150);}
+    if(d<200&&m._b)nearList.push({b:m._b,d:Math.round(d)});
+  });
+  // Update nearby panel
+  const np=document.getElementById("nearby-panel");
+  if(nearList.length>0){
+    np.style.display="flex";
+    np.innerHTML=nearList.slice(0,3).map(({b,d})=>{
+      const col=RARITY[b.rar]?.color||"#fff";
+      return`<div class="nearby-item"><div class="nearby-dot" style="background:${col}"></div>${b.e} ${b.nom} <span style="color:rgba(255,255,255,0.5)">${d}m</span></div>`;
+    }).join("");
+  } else np.style.display="none";
+  // Alert
+  const now=Date.now();
+  if(nearList.length>0&&now-lastNearAlert>30000){
+    lastNearAlert=now;toast("⚡ Brainrot tout proche !");
+  }
+}
+
+// ══════════════════════════════════
+// CATCH NEAREST (pokeball button)
+// ══════════════════════════════════
+function catchNearest(){
+  if(!S.pos||!S.markers.length)return;
+  let nearest=null,minD=Infinity;
+  S.markers.forEach(m=>{
+    const d=dist(S.pos[0],S.pos[1],m.getLatLng().lat,m.getLatLng().lng);
+    if(d<minD){minD=d;nearest=m;}
+  });
+  if(!nearest)return;
+  const max=hasPass("magnet")?400:200;
+  if(minD>max){toast("📍 Aucun brainrot à portée ("+Math.round(minD)+"m)");return;}
+  openCatch(nearest._b,nearest);
+}
+
+// ══════════════════════════════════
+// ICON HELPER
+// ══════════════════════════════════
+function getIcon(nom,size=52){
+  if(typeof BRAINROT_SVGS!=="undefined"&&BRAINROT_SVGS&&BRAINROT_SVGS[nom])
+    return BRAINROT_SVGS[nom].replace(/width="[^"]*"/,`width="${size}"`).replace(/height="[^"]*"/,`height="${size}"`);
+  return null;
+}
+function iconHTML(b,size=52){
+  const svg=getIcon(b.nom,size);
+  if(svg)return`<div style="width:${size}px;height:${size}px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;overflow:hidden">${svg}</div>`;
+  return`<span style="font-size:${Math.round(size*0.55)}px;line-height:${size}px;display:inline-block;width:${size}px;height:${size}px;text-align:center">${b.e}</span>`;
+}
+
+// ══════════════════════════════════
+// CATCH SCREEN
+// ══════════════════════════════════
+function openCatch(b,marker){
+  S.current=b;S.currentMarker=marker;
+  const col=RARITY[b.rar].color;
+  const muts=MUTATIONS.filter(m=>m);
+  const mutChance=hasPass("luck")?0.3:0.1;
+  S._mut=Math.random()<mutChance?muts[Math.floor(Math.random()*muts.length)]:null;
+
+  // Set catch screen info
+  document.getElementById("catch-name-top").textContent=b.nom;
+  document.getElementById("catch-rar-top").innerHTML=`<span class="rbadge" style="background:${col}33;color:${col};border:1px solid ${col}55">${b.rar}</span>`;
+  document.getElementById("catch-mut-top").textContent=S._mut?"✨ "+S._mut.name:"";
+  document.getElementById("catch-creature-img").innerHTML=iconHTML(b,100);
+
+  // HP bar color based on rarity
+  const hpColors={Common:"#4ADE80",Rare:"#60A5FA",Epic:"#C084FC",Legendary:"#FBBF24",Mythic:"#F87171","Brainrot God":"#34D399",Secret:"#F472B6",OG:"#FCD34D"};
+  document.getElementById("catch-hp-bar").style.background=hpColors[b.rar]||"#4ADE80";
+  document.getElementById("catch-hp-bar").style.width="100%";
+
+  // Already caught
+  const entry=S.caught[b.id];
+  const alEl=document.getElementById("catch-already");
+  if(entry){alEl.style.display="block";alEl.textContent="Déjà capturé x"+entry.count+" ! Tu peux en attraper un autre.";}
+  else alEl.style.display="none";
+
+  // AR info
+  document.getElementById("ar-creature-ar").innerHTML=iconHTML(b,120);
+  document.getElementById("ar-creature-name").textContent=b.nom;
+  document.getElementById("ar-rar-badge").innerHTML=`<span class="rbadge" style="background:${col}33;color:${col}">${b.rar}</span>`;
+
+  // Init throw game
+  S.throwCount=0;S.hp=RARITY[b.rar].hp;S.hpMax=S.hp;S.gameActive=true;
+  document.getElementById("ball-hint").textContent=S.hp>1?"Tape la balle "+S.hp+" fois !":"Tape la balle pour attraper !";
+  document.getElementById("mg-overlay").classList.remove("show");
+  document.getElementById("throw-area").classList.remove("show");
+  document.getElementById("catch-escape").style.display="none";
+
+  // Epic+ needs minigame
+  const rarOrder=["Common","Rare","Epic","Legendary","Mythic","Brainrot God","Secret","OG"];
+  const idx=rarOrder.indexOf(b.rar);
+  if(idx>=2){
+    // Show minigame after first throw
+    document.getElementById("ball-hint").textContent="Tape pour lancer, puis réussis le mini-jeu !";
+  }
+
+  document.getElementById("catch-screen").classList.add("open");
+}
+
+// THROW BALL
+function throwBall(){
+  if(!S.gameActive)return;
+  const b=S.current;
+  const rarOrder=["Common","Rare","Epic","Legendary","Mythic","Brainrot God","Secret","OG"];
+  const idx=rarOrder.indexOf(b.rar);
+
+  // Animate ball throw
+  const ball=document.getElementById("brainrot-ball");
+  ball.style.transform="scale(0.7) translateY(-20px)";
+  setTimeout(()=>ball.style.transform="",300);
+
+  S.throwCount++;
+
+  // For Common/Rare: direct tap game
+  if(idx<=1){
+    S.hp--;
+    const pct=(S.hp/S.hpMax)*100;
+    document.getElementById("catch-hp-bar").style.width=pct+"%";
+    document.getElementById("ball-hint").textContent=S.hp>0?"Encore "+S.hp+" tap"+(S.hp>1?"s":"")+" !":"";
+    if(S.hp<=0){S.gameActive=false;doSuccess();}
+  }
+  // Epic+ : show minigame
+  else if(idx>=2&&idx<=3){
+    document.getElementById("mg-overlay").classList.add("show");
+    document.getElementById("mg-dodge-area").style.display="block";
+    document.getElementById("mg-timing-area").style.display="none";
+    startDodgeGame(b);
+  } else {
+    document.getElementById("mg-overlay").classList.add("show");
+    document.getElementById("mg-dodge-area").style.display="none";
+    document.getElementById("mg-timing-area").style.display="block";
+    startTimingGame(b);
+  }
+}
+
+// DODGE
+let dodgeTimer=null;
+function startDodgeGame(b){
+  S.gameActive=true;let t=5;
+  document.getElementById("mg-countdown").textContent=t;
+  document.getElementById("mg-dodge-bar").style.width="100%";
+  document.getElementById("mg-dodge-creature").innerHTML=iconHTML(b,70);
+  document.getElementById("mg-dodge-creature").onclick=()=>{
+    if(!S.gameActive)return;
+    S.gameActive=false;clearInterval(dodgeTimer);
+    document.getElementById("mg-overlay").classList.remove("show");
+    showEscape();
+  };
+  dodgeTimer=setInterval(()=>{
+    t-=0.1;
+    document.getElementById("mg-countdown").textContent=Math.ceil(t);
+    document.getElementById("mg-dodge-bar").style.width=(t/5*100)+"%";
+    if(t<=0){clearInterval(dodgeTimer);S.gameActive=false;document.getElementById("mg-overlay").classList.remove("show");doSuccess();}
+  },100);
+}
+
+// TIMING
+let timingInterval=null,timingPos=0,timingDir=1,timingLives=3;
+function startTimingGame(b){
+  S.gameActive=true;timingLives=3;timingPos=0;timingDir=1;
+  updateTimingLives();
+  const zoneStart=30+Math.random()*20;
+  document.getElementById("mg-timing-zone").style.left=zoneStart+"%";
+  timingInterval=setInterval(()=>{
+    timingPos+=timingDir*2.5;
+    if(timingPos>=90||timingPos<=0)timingDir*=-1;
+    document.getElementById("mg-timing-cursor").style.left=timingPos+"%";
+  },30);
+}
+function updateTimingLives(){document.getElementById("mg-timing-lives").textContent="❤️".repeat(timingLives)+" Vies";}
+function timingTap(){
+  if(!S.gameActive)return;
+  const zL=parseFloat(document.getElementById("mg-timing-zone").style.left);
+  if(timingPos>=zL&&timingPos<=zL+25){
+    clearInterval(timingInterval);S.gameActive=false;
+    document.getElementById("mg-overlay").classList.remove("show");
+    doSuccess();
+  } else {
+    timingLives--;updateTimingLives();
+    if(timingLives<=0){clearInterval(timingInterval);S.gameActive=false;document.getElementById("mg-overlay").classList.remove("show");showEscape();}
+    else toast("⚠️ Raté ! "+timingLives+" vie"+(timingLives>1?"s":""));
+  }
+}
+
+function showEscape(){
+  document.getElementById("catch-escape").style.display="block";
+  setTimeout(()=>{document.getElementById("catch-escape").style.display="none";closeCatch();},1500);
+}
+
+function doSuccess(){
+  const b=S.current,mut=S._mut;
+  let xp=RARITY[b.rar].xp,coins=RARITY[b.rar].coins;
+  if(mut?.bonus==="xp2")xp*=2;
+  if(mut?.bonus==="coins2")coins*=2;
+  if(mut?.bonus==="all3"){xp*=3;coins*=3;}
+  const prev=S.caught[b.id];
+  S.caught[b.id]={count:(prev?prev.count:0)+1,mut:mut?.name||prev?.mut||null};
+  gainXP(xp);gainCoins(coins);
+  if(S.currentMarker){map.removeLayer(S.currentMarker);S.markers=S.markers.filter(m=>m!==S.currentMarker);}
+  closeCatch();closeAR();
+  toast(b.e+" "+b.nom+(mut?" ("+mut.name+")":"")+" x"+S.caught[b.id].count+" ! +"+xp+"XP +"+coins+"🪙");
+  setTimeout(()=>{if(S.pos)spawnMarker(b);},3000);
+}
+
+function closeCatch(){
+  document.getElementById("catch-screen").classList.remove("open");
+  S.current=null;S.gameActive=false;
+  clearInterval(dodgeTimer);clearInterval(timingInterval);
+}
+
+// ══════════════════════════════════
+// AR — GPS POSITIONED
+// ══════════════════════════════════
+let arStream=null, arHeading=0, arInterval=null;
+
+function openARFree(){
+  const caught=BRAINROTS.filter(b=>S.caught[b.id]);
+  const b=caught.length?caught[Math.floor(Math.random()*caught.length)]:BRAINROTS[Math.floor(Math.random()*BRAINROTS.length)];
+  const col=RARITY[b.rar]?.color||"#fff";
+  document.getElementById("ar-creature-ar").innerHTML=iconHTML(b,100);
+  document.getElementById("ar-creature-name").textContent=b.nom;
+  document.getElementById("ar-rar-badge").innerHTML=`<span class="rbadge" style="background:${col}33;color:${col}">${b.rar}</span>`;
+  document.getElementById("ar-ball").style.display="none";
+  document.getElementById("ar-compass-wrap").classList.remove("show");
+  document.getElementById("ar-dist").textContent="📷 Mode AR libre";
+  // Center creature
+  document.getElementById("ar-creature-ar").style.left="50%";
+  document.getElementById("ar-creature-ar").style.top="42%";
+  openARCamera();
+}
+
+function openAR(){
+  if(!S.current||!S.currentMarker){openARFree();return;}
+  const b=S.current;
+  const col=RARITY[b.rar]?.color||"#fff";
+  document.getElementById("ar-creature-ar").innerHTML=iconHTML(b,100);
+  document.getElementById("ar-creature-name").textContent=b.nom;
+  document.getElementById("ar-rar-badge").innerHTML=`<span class="rbadge" style="background:${col}33;color:${col}">${b.rar}</span>`;
+  document.getElementById("ar-ball").style.display="block";
+
+  if(S.pos){
+    const bLat=S.currentMarker.getLatLng().lat;
+    const bLng=S.currentMarker.getLatLng().lng;
+    const d=dist(S.pos[0],S.pos[1],bLat,bLng);
+    document.getElementById("ar-dist").textContent="📍 "+Math.round(d)+"m";
+
+    if(d>75){
+      document.getElementById("ar-creature-ar").style.display="none";
+      document.getElementById("ar-compass-wrap").classList.add("show");
+      const bearing=getBearing(S.pos[0],S.pos[1],bLat,bLng);
+      document.getElementById("ar-compass-arrow").style.transform=`rotate(${bearing}deg)`;
+      document.getElementById("ar-compass-meters").textContent=Math.round(d)+"m";
+    } else {
+      document.getElementById("ar-creature-ar").style.display="block";
+      document.getElementById("ar-compass-wrap").classList.remove("show");
+      // Position creature based on bearing relative to camera heading
+      startARPositioning(bLat,bLng);
+    }
+  }
+  openARCamera();
+}
+
+function startARPositioning(bLat,bLng){
+  if(arInterval)clearInterval(arInterval);
+  // Use device orientation to position creature
+  const updatePos=()=>{
+    if(!S.pos)return;
+    const bearing=getBearing(S.pos[0],S.pos[1],bLat,bLng);
+    const d=dist(S.pos[0],S.pos[1],bLat,bLng);
+    // Angle difference between where camera points and where brainrot is
+    const angleDiff=((bearing-arHeading+540)%360)-180;
+    // Map angle to screen X (-90° = left edge, +90° = right edge)
+    const screenW=window.innerWidth;
+    const screenX=screenW/2+(angleDiff/90)*(screenW/2);
+    // Distance affects Y — further = higher on screen
+    const screenY=window.innerHeight*(0.3+Math.min(d/200,0.3));
+    const creature=document.getElementById("ar-creature-ar");
+    creature.style.left=Math.max(50,Math.min(screenW-50,screenX))+"px";
+    creature.style.top=Math.max(100,screenY)+"px";
+    creature.style.display="block";
+    document.getElementById("ar-dist").textContent="📍 "+Math.round(d)+"m";
+  };
+  arInterval=setInterval(updatePos,100);
+  updatePos();
+}
+
+// Listen to device compass
+window.addEventListener("deviceorientationabsolute",e=>{if(e.alpha!==null)arHeading=e.alpha;});
+window.addEventListener("deviceorientation",e=>{if(e.webkitCompassHeading)arHeading=e.webkitCompassHeading;else if(e.alpha!==null)arHeading=e.alpha;});
+
+function openARCamera(){
+  document.getElementById("ar-modal").classList.add("open");
+  if(navigator.mediaDevices?.getUserMedia){
+    navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false})
+    .then(s=>{
+      arStream=s;
+      const v=document.getElementById("ar-video");
+      v.srcObject=s;v.style.display="block";
+      document.getElementById("ar-no-cam").style.display="none";
+    })
+    .catch(()=>{
+      document.getElementById("ar-video").style.display="none";
+      document.getElementById("ar-no-cam").style.display="flex";
+    });
+  } else {
+    document.getElementById("ar-video").style.display="none";
+    document.getElementById("ar-no-cam").style.display="flex";
+  }
+}
+
+function getBearing(a,b,c,d){
+  const dL=(d-b)*Math.PI/180;
+  const y=Math.sin(dL)*Math.cos(c*Math.PI/180);
+  const x=Math.cos(a*Math.PI/180)*Math.sin(c*Math.PI/180)-Math.sin(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.cos(dL);
+  return(Math.atan2(y,x)*180/Math.PI+360)%360;
+}
+
+function closeAR(){
+  document.getElementById("ar-modal").classList.remove("open");
+  if(arStream){arStream.getTracks().forEach(t=>t.stop());arStream=null;}
+  if(arInterval){clearInterval(arInterval);arInterval=null;}
+}
+
+// ══════════════════════════════════
+// TABS
+// ══════════════════════════════════
+function showTab(t){
+  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("open"));
+  document.querySelectorAll(".nav-btn").forEach(b=>b.classList.remove("active"));
+  const tabs={dex:"panel-dex",col:"panel-col",shop:"panel-shop",build:"panel-build",bit:"panel-bit"};
+  const btns={map:"nb-map",dex:"nb-dex",col:"nb-col",shop:"nb-shop",build:"nb-build",bit:"nb-bit"};
+  if(tabs[t])document.getElementById(tabs[t]).classList.add("open");
+  document.getElementById(btns[t]||"nb-map").classList.add("active");
+  if(t==="dex")renderDex("all");
+  else if(t==="col")renderCol();
+  else if(t==="shop"){renderShop();document.getElementById("shop-coins-txt").textContent=Math.floor(S.coins);}
+  else if(t==="build")renderBuildings();
+  else if(t==="bit")updateBRTDisplay();
+}
+
+// ══════════════════════════════════
+// POKÉDEX
+// ══════════════════════════════════
+function renderDex(f){
+  const uniq=Object.keys(S.caught).length;
+  const tot=Object.values(S.caught).reduce((a,b)=>a+(b.count||1),0);
+  document.getElementById("dex-stats").textContent=uniq+"/"+BRAINROTS.length+" espèces · "+tot+" capturés";
+  const rars=["all",...Object.keys(RARITY)];
+  document.getElementById("dex-filters").innerHTML=rars.map(r=>`<button class="filt ${f===r?"on":""}" onclick="renderDex('${r}')">${r==="all"?"Tous":r}</button>`).join("");
+  const list=f==="all"?BRAINROTS:BRAINROTS.filter(b=>b.rar===f);
+  document.getElementById("dex-grid").innerHTML=list.map(b=>{
+    const entry=S.caught[b.id];const col=RARITY[b.rar]?.color||"#fff";
+    return`<div class="dex-card ${entry?"":"locked"}" style="border:1px solid ${entry?col+"55":"rgba(255,255,255,0.05)"}">
+      ${entry?`<div class="dex-cnt">x${entry.count||1}</div>`:""}
+      ${entry?.mut?`<div class="dex-mut">✨</div>`:""}
+      <div style="display:flex;justify-content:center;margin-bottom:2px">${entry?iconHTML(b,40):`<span style="font-size:20px;line-height:40px;display:inline-block;width:40px;height:40px;text-align:center">❓</span>`}</div>
+      <div class="dex-name">${entry?b.nom:"???"}</div>
+      <div class="dex-rar" style="color:${col}">${b.rar}</div>
+    </div>`;
+  }).join("");
+}
+
+// ══════════════════════════════════
+// COLLECTION
+// ══════════════════════════════════
+function renderCol(){
+  const caught=BRAINROTS.filter(b=>S.caught[b.id]);
+  if(!caught.length){document.getElementById("col-list").innerHTML='<div class="empty">Ton sac est vide...<br>Pars à l\'aventure !</div>';return;}
+  document.getElementById("col-list").innerHTML=caught.map(b=>{
+    const entry=S.caught[b.id];const col=RARITY[b.rar]?.color||"#fff";
+    return`<div class="col-item" style="border-left:3px solid ${col}">
+      <div class="col-e">${iconHTML(b,40)}</div>
+      <div class="col-info">
+        <div class="col-name">${b.nom}</div>
+        <div class="col-desc">${b.desc}</div>
+        ${entry.mut?`<div class="col-mut">✨ ${entry.mut}</div>`:""}
+        <span class="rbadge" style="background:${col}22;color:${col};border:1px solid ${col}33">${b.rar}</span>
+      </div>
+      <div class="col-cnt">x${entry.count||1}</div>
+    </div>`;
+  }).join("");
+}
+
+// ══════════════════════════════════
+// SHOP
+// ══════════════════════════════════
+function shopTab(t,btn){
+  document.querySelectorAll(".shop-tab").forEach(b=>b.classList.remove("on"));
+  btn.classList.add("on");
+  document.getElementById("shop-lucky").style.display=t==="lucky"?"block":"none";
+  document.getElementById("shop-gp").style.display=t==="gp"?"block":"none";
+  if(t==="gp")renderGP();
+}
+function renderShop(){document.getElementById("shop-coins-txt").textContent=S.coins;}
+function renderGP(){
+  document.getElementById("gp-grid").innerHTML=GAMEPASSES.map(g=>{
+    const owned=hasPass(g.id);const can=S.coins>=g.price&&!owned;
+    const remain=owned&&typeof S.passes[g.id]==="number"?Math.ceil((S.passes[g.id]-Date.now())/1000):"";
+    return`<div class="gp-card ${owned?"owned":""}">
+      <div class="gp-icon">${g.icon}</div>
+      <div class="gp-name">${g.name}</div>
+      <div class="gp-desc">${g.desc}</div>
+      <div class="gp-price">🪙 ${g.price}</div>
+      <button class="gp-btn" ${owned||!can?"disabled":""} onclick="buyGP('${g.id}',${g.price},${g.duration})">
+        ${owned?(remain?"⏱ "+remain+"s":"✅ Actif"):can?"Acheter":"🔒"}
+      </button>
+    </div>`;
+  }).join("");
+}
+function buyGP(id,price,duration){
+  if(S.coins<price||hasPass(id))return;
+  S.coins-=price;activatePass(id,duration);hud();renderGP();
+  toast("💎 "+GAMEPASSES.find(g=>g.id===id)?.name+" activé !");
+}
+
+// ══════════════════════════════════
+// LUCKY ROT
+// ══════════════════════════════════
+function openLucky(type){
+  const price=type==="grand"?5000:3000;
+  if(S.coins<price){toast("🪙 Pas assez de coins ! ("+price+" nécessaires)");return;}
+  S.coins-=price;save();hud();
+  document.getElementById("lucky-modal").classList.add("open");
+  document.getElementById("lucky-spinning").style.display="block";
+  document.getElementById("lucky-result").style.display="none";
+  document.getElementById("lucky-spin-icon").textContent=type==="grand"?"👑":"🎁";
+  setTimeout(()=>{
+    let pool;
+    if(type==="grand"){pool=BRAINROTS.filter(b=>["Secret","OG"].includes(b.rar));}
+    else{
+      const w={Rare:40,Epic:30,Legendary:18,Mythic:8,"Brainrot God":3,Secret:1};
+      const total=Object.values(w).reduce((a,b)=>a+b,0);
+      let r=Math.random()*total,a=0,rar="Rare";
+      for(const[n,v]of Object.entries(w)){a+=v;if(r<a){rar=n;break;}}
+      pool=BRAINROTS.filter(b=>b.rar===rar);
+    }
+    if(!pool.length)pool=BRAINROTS.filter(b=>b.rar==="Rare");
+    const b=pool[Math.floor(Math.random()*pool.length)];
+    const col=RARITY[b.rar]?.color||"#fff";
+    const prev=S.caught[b.id];
+    S.caught[b.id]={count:(prev?prev.count:0)+1,mut:prev?.mut||null};
+    save();hud();
+    document.getElementById("lucky-spinning").style.display="none";
+    document.getElementById("lucky-result").style.display="block";
+    document.getElementById("lucky-result-icon").innerHTML=iconHTML(b,80);
+    document.getElementById("lucky-result-name").textContent=b.nom;
+    document.getElementById("lucky-result-rar").innerHTML=`<span class="rbadge" style="background:${col}22;color:${col};border:1px solid ${col}44;font-size:13px;padding:4px 12px">${b.rar}</span>`;
+  },2000);
+}
+function closeLucky(){document.getElementById("lucky-modal").classList.remove("open");renderDex("all");}
+
+// ══════════════════════════════════
+// PASSIVE INCOME
+// ══════════════════════════════════
+const PASSIVE_PER_RARITY = {
+  Common:0.05, Rare:0.2, Epic:0.5, Legendary:1.5,
+  Mythic:5, "Brainrot God":15, Secret:50, OG:200
+};
+
+function calcPassiveRate(){
+  let rate=0;
+  // From caught brainrots
+  Object.entries(S.caught).forEach(([id,entry])=>{
+    const b=BRAINROTS.find(x=>x.id==id);
+    if(b)rate+=(PASSIVE_PER_RARITY[b.rar]||0)*(entry.count||1);
+  });
+  // From buildings
+  (S.buildings||[]).forEach(b=>{
+    const def=BUILDINGS.find(x=>x.id===b.type);
+    if(def)rate+=def.income;
+  });
+  return Math.round(rate*100)/100;
+}
+
+// Passive income tick every second
+setInterval(()=>{
+  const rate=calcPassiveRate();
+  if(rate>0){
+    S.coins+=rate;
+    save();
+    // Update displays
+    const ct=document.getElementById("coins-txt");if(ct)ct.textContent=Math.floor(S.coins);
+    const sc=document.getElementById("shop-coins-txt");if(sc)sc.textContent=Math.floor(S.coins);
+    const bc=document.getElementById("build-coins-txt");if(bc)bc.textContent=Math.floor(S.coins);
+    const btc=document.getElementById("bit-coins");if(btc)btc.textContent=Math.floor(S.coins);
+    const pr=document.getElementById("passive-rate");if(pr)pr.textContent=rate;
+  }
+},1000);
+
+// ══════════════════════════════════
+// BUILDINGS
+// ══════════════════════════════════
+const BUILDINGS=[
+  {id:"shack",    icon:"🛖", name:"Cabane Brainrot",  desc:"Petit abri qui génère quelques coins",         cost:500,   income:2,   max:10},
+  {id:"farm",     icon:"🌾", name:"Ferme Brainrot",   desc:"Produit des ressources naturellement",          cost:2000,  income:8,   max:5},
+  {id:"cafe",     icon:"☕", name:"Café Assassino",   desc:"Les brainrots adorent le café !",              cost:5000,  income:20,  max:3},
+  {id:"lab",      icon:"🧪", name:"Labo Brainrot",    desc:"Recherche avancée sur les brainrots",          cost:15000, income:60,  max:2},
+  {id:"tower",    icon:"🗼", name:"Tour Suprême",     desc:"La structure la plus rentable du jeu",         cost:50000, income:200, max:1},
+];
+
+if(!S.buildings)S.buildings=[];
+let buildingToBuild=null;
+
+function renderBuildings(){
+  document.getElementById("build-coins-txt").textContent=Math.floor(S.coins);
+  document.getElementById("passive-rate").textContent=calcPassiveRate();
+
+  document.getElementById("build-grid").innerHTML=BUILDINGS.map(b=>{
+    const owned=(S.buildings||[]).filter(x=>x.type===b.id).length;
+    const canBuy=S.coins>=b.cost&&owned<b.max;
+    return`<div style="background:rgba(0,0,0,0.4);border-radius:12px;padding:12px;display:flex;align-items:center;gap:10px;border:1px solid rgba(255,255,255,0.1)">
+      <div style="font-size:36px;flex-shrink:0">${b.icon}</div>
+      <div style="flex:1">
+        <div style="font-weight:900;font-size:13px">${b.name}</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.5);margin:2px 0">${b.desc}</div>
+        <div style="font-size:10px;color:#4ADE80">+${b.income} coins/sec &nbsp;·&nbsp; <span style="color:#FBBF24">🪙 ${b.cost.toLocaleString()}</span> &nbsp;·&nbsp; <span style="color:rgba(255,255,255,0.4)">${owned}/${b.max}</span></div>
+      </div>
+      <button onclick="openBuildModal('${b.id}')" ${!canBuy?"disabled":""} style="padding:8px 12px;border-radius:10px;border:none;background:${canBuy?"linear-gradient(135deg,#4CAF50,#2E7D32)":"rgba(255,255,255,0.1)"};color:${canBuy?"#fff":"rgba(255,255,255,0.3)"};font-family:'Bangers',cursive;font-size:13px;cursor:${canBuy?"pointer":"default"};flex-shrink:0">
+        ${owned>=b.max?"MAX":canBuy?"Acheter":"🔒"}
+      </button>
+    </div>`;
+  }).join("");
+
+  // Placed buildings
+  const placed=S.buildings||[];
+  document.getElementById("placed-grid").innerHTML=placed.length===0
+    ?`<div style="color:rgba(255,255,255,0.3);font-size:12px;text-align:center;padding:10px">Aucun bâtiment construit</div>`
+    :placed.map((b,i)=>{
+      const def=BUILDINGS.find(x=>x.id===b.type);
+      if(!def)return"";
+      return`<div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:8px;font-size:11px">
+        <span style="font-size:20px">${def.icon}</span>
+        <div style="flex:1">${def.name}<br><span style="color:rgba(255,255,255,0.4)">📍 ${b.lat?.toFixed(4)||"?"},${b.lng?.toFixed(4)||"?"}</span></div>
+        <span style="color:#4ADE80">+${def.income}/s</span>
+        <button onclick="demolish(${i})" style="background:rgba(248,113,113,0.2);border:1px solid rgba(248,113,113,0.3);color:#F87171;border-radius:6px;padding:3px 7px;font-size:10px;cursor:pointer">🗑️</button>
+      </div>`;
+    }).join("");
+}
+
+function openBuildModal(id){
+  const def=BUILDINGS.find(b=>b.id===id);if(!def)return;
+  buildingToBuild=id;
+  document.getElementById("bm-icon").textContent=def.icon;
+  document.getElementById("bm-name").textContent=def.name;
+  document.getElementById("bm-desc").textContent=def.desc+" (+"+def.income+" coins/sec)";
+  document.getElementById("build-modal").style.display="flex";
+}
+
+function confirmBuild(){
+  const def=BUILDINGS.find(b=>b.id===buildingToBuild);if(!def)return;
+  if(S.coins<def.cost){toast("🪙 Pas assez de coins !");return;}
+  S.coins-=def.cost;
+  if(!S.buildings)S.buildings=[];
+  const lat=S.pos?S.pos[0]:48.8566;
+  const lng=S.pos?S.pos[1]:2.3522;
+  S.buildings.push({type:buildingToBuild,lat,lng});
+  save();hud();
+  document.getElementById("build-modal").style.display="none";
+  renderBuildings();
+  // Add marker on map
+  addBuildingMarker(S.buildings[S.buildings.length-1],S.buildings.length-1);
+  toast(def.icon+" "+def.name+" construit ! +"+def.income+" coins/sec");
+}
+
+function demolish(idx){
+  if(!confirm("Démolir ce bâtiment ?"))return;
+  S.buildings.splice(idx,1);save();renderBuildings();
+  toast("🗑️ Bâtiment démoli");
+}
+
+function addBuildingMarker(b,idx){
+  if(!map)return;
+  const def=BUILDINGS.find(x=>x.id===b.type);if(!def)return;
+  L.marker([b.lat,b.lng],{icon:L.divIcon({className:"",
+    html:`<div style="font-size:28px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5))">${def.icon}</div>`,
+    iconAnchor:[14,14]})}).addTo(map)
+    .bindPopup(`<b>${def.name}</b><br>+${def.income} coins/sec`);
+}
+
+// ══════════════════════════════════
+// BITBRAINROT
+// ══════════════════════════════════
+let brtPrice=1000;
+let brtHistory=[1000];
+let brtWallet=S.brtWallet||0;
+let bitLog=[];
+
+// Price fluctuation — moves every 5 seconds
+function fluctuateBRT(){
+  const change=(Math.random()-0.47)*0.08; // slight downward bias
+  const demand=Math.min(Object.keys(S.caught).length/10,2); // more catches = more demand
+  brtPrice=Math.max(10,Math.round(brtPrice*(1+change+demand*0.005)));
+  brtHistory.push(brtPrice);
+  if(brtHistory.length>50)brtHistory.shift();
+  updateBRTDisplay();
+}
+setInterval(fluctuateBRT,5000);
+
+function updateBRTDisplay(){
+  const priceEl=document.getElementById("brt-price");if(!priceEl)return;
+  priceEl.textContent=brtPrice.toLocaleString();
+  const prev=brtHistory[brtHistory.length-2]||brtPrice;
+  const pct=Math.round((brtPrice-prev)/prev*100*10)/10;
+  const chEl=document.getElementById("brt-change");
+  if(chEl){
+    chEl.textContent=(pct>=0?"▲ +":"▼ ")+pct+"% depuis 5s";
+    chEl.style.color=pct>=0?"#4ADE80":"#F87171";
+  }
+  const wEl=document.getElementById("bit-wallet");if(wEl)wEl.textContent=brtWallet.toFixed(3);
+  const bcEl=document.getElementById("bit-coins");if(bcEl)bcEl.textContent=Math.floor(S.coins);
+  drawBRTChart();
+  // Update previews
+  const ba=document.getElementById("buy-amount");
+  if(ba&&ba.value)updateBuyPreview();
+  const sa=document.getElementById("sell-amount");
+  if(sa&&sa.value)updateSellPreview();
+}
+
+function drawBRTChart(){
+  const canvas=document.getElementById("brt-chart");if(!canvas)return;
+  const ctx=canvas.getContext("2d");
+  const W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  if(brtHistory.length<2)return;
+  const min=Math.min(...brtHistory);
+  const max=Math.max(...brtHistory);
+  const range=max-min||1;
+  ctx.beginPath();
+  ctx.strokeStyle=brtHistory[brtHistory.length-1]>=brtHistory[0]?"#4ADE80":"#F87171";
+  ctx.lineWidth=2;
+  brtHistory.forEach((v,i)=>{
+    const x=i/(brtHistory.length-1)*W;
+    const y=H-(v-min)/range*(H-8)-4;
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+  // Fill
+  ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.closePath();
+  ctx.fillStyle=brtHistory[brtHistory.length-1]>=brtHistory[0]?"rgba(74,222,128,0.15)":"rgba(248,113,113,0.15)";
+  ctx.fill();
+}
+
+function updateBuyPreview(){
+  const coins=parseFloat(document.getElementById("buy-amount").value)||0;
+  document.getElementById("buy-brt-preview").textContent=(coins/brtPrice).toFixed(3);
+}
+function updateSellPreview(){
+  const brt=parseFloat(document.getElementById("sell-amount").value)||0;
+  document.getElementById("sell-coins-preview").textContent=Math.floor(brt*brtPrice).toLocaleString();
+}
+
+document.addEventListener("DOMContentLoaded",()=>{
+  const ba=document.getElementById("buy-amount");
+  if(ba)ba.addEventListener("input",updateBuyPreview);
+  const sa=document.getElementById("sell-amount");
+  if(sa)sa.addEventListener("input",updateSellPreview);
+});
+
+function buyBRT(){
+  const coins=parseFloat(document.getElementById("buy-amount").value)||0;
+  if(coins<=0){toast("Entre un montant !");return;}
+  if(coins>S.coins){toast("🪙 Pas assez de coins !");return;}
+  const brt=coins/brtPrice;
+  S.coins-=coins;brtWallet+=brt;S.brtWallet=brtWallet;
+  save();hud();updateBRTDisplay();
+  document.getElementById("buy-amount").value="";
+  addBitLog("Achat","+"+brt.toFixed(3)+" BRT","#4ADE80",coins);
+  toast("📈 Acheté "+brt.toFixed(3)+" BRT !");
+  // Buying increases price slightly (demand)
+  brtPrice=Math.round(brtPrice*1.01);
+}
+
+function sellBRT(){
+  const brt=parseFloat(document.getElementById("sell-amount").value)||0;
+  if(brt<=0){toast("Entre un montant !");return;}
+  if(brt>brtWallet){toast("Tu n'as pas assez de BRT !");return;}
+  const coins=Math.floor(brt*brtPrice);
+  brtWallet-=brt;S.brtWallet=brtWallet;S.coins+=coins;
+  save();hud();updateBRTDisplay();
+  document.getElementById("sell-amount").value="";
+  addBitLog("Vente","-"+brt.toFixed(3)+" BRT","#F87171",coins);
+  toast("📉 Vendu pour "+coins.toLocaleString()+" coins !");
+  // Selling decreases price slightly (supply)
+  brtPrice=Math.max(10,Math.round(brtPrice*0.99));
+}
+
+function addBitLog(type,amount,color,coins){
+  bitLog.unshift({type,amount,color,coins,price:brtPrice,time:new Date().toLocaleTimeString()});
+  if(bitLog.length>20)bitLog.pop();
+  const el=document.getElementById("bit-history");
+  if(el)el.innerHTML=bitLog.map(l=>
+    `<div style="display:flex;justify-content:space-between;font-size:10px;padding:4px 6px;background:rgba(0,0,0,0.2);border-radius:6px">
+      <span style="color:${l.color}">${l.type}</span>
+      <span style="color:${l.color}">${l.amount}</span>
+      <span style="color:rgba(255,255,255,0.4)">@ ${l.price.toLocaleString()}</span>
+      <span style="color:#FBBF24">${l.coins.toLocaleString()} 🪙</span>
+      <span style="color:rgba(255,255,255,0.3)">${l.time}</span>
+    </div>`
+  ).join("");
+}
+
+// ══════════════════════════════════
+// TOAST
+// ══════════════════════════════════
+function toast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg;t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"),3000);
+}
+</script>
+</body>
+</html>
